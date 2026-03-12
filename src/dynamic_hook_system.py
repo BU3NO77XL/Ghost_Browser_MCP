@@ -10,14 +10,11 @@ import asyncio
 import uuid
 import fnmatch
 from datetime import datetime
-from typing import Dict, List, Any, Callable, Optional, Union
+from typing import Dict, List, Any, Callable, Optional
 from dataclasses import dataclass, asdict
 import nodriver as uc
 from debug_logger import debug_logger
 import ast
-import sys
-from io import StringIO
-import contextlib
 
 
 @dataclass
@@ -64,12 +61,101 @@ class DynamicHook:
         self.last_triggered: Optional[datetime] = None
         self.status = "active"
         self.request_stage = requirements.get('stage', 'request')  # 'request' or 'response'
+        self.instance_ids: List[str] = []
         
         self._compiled_function = self._compile_function()
+
+    @staticmethod
+    def _validate_function_ast(function_code: str) -> List[str]:
+        """Validate hook AST to block unsafe constructs before exec."""
+        issues: List[str] = []
+        banned_function_calls = {
+            "eval",
+            "exec",
+            "open",
+            "input",
+            "compile",
+            "__import__",
+            "globals",
+            "locals",
+            "vars",
+            "getattr",
+            "setattr",
+            "delattr",
+        }
+        banned_attributes = {
+            "__class__",
+            "__mro__",
+            "__bases__",
+            "__subclasses__",
+            "__globals__",
+            "__code__",
+            "__closure__",
+            "__dict__",
+        }
+
+        parsed = ast.parse(function_code)
+        for node in ast.walk(parsed):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                issues.append("Imports are not allowed in hook functions")
+            elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                if node.func.id in banned_function_calls:
+                    issues.append(f"Dangerous function call: {node.func.id}")
+            elif isinstance(node, ast.Attribute) and node.attr in banned_attributes:
+                issues.append(f"Access to unsafe attribute is not allowed: {node.attr}")
+            elif isinstance(node, (ast.Global, ast.Nonlocal)):
+                issues.append("global/nonlocal statements are not allowed")
+        return issues
+
+    @staticmethod
+    def _is_safe_condition_expression(condition_code: str) -> bool:
+        """Allow only simple boolean expressions against request dict."""
+        try:
+            parsed = ast.parse(condition_code, mode="eval")
+        except Exception:
+            return False
+
+        allowed_nodes = (
+            ast.Expression,
+            ast.BoolOp,
+            ast.And,
+            ast.Or,
+            ast.UnaryOp,
+            ast.Not,
+            ast.Compare,
+            ast.Eq,
+            ast.NotEq,
+            ast.In,
+            ast.NotIn,
+            ast.Gt,
+            ast.GtE,
+            ast.Lt,
+            ast.LtE,
+            ast.Is,
+            ast.IsNot,
+            ast.Name,
+            ast.Load,
+            ast.Subscript,
+            ast.Constant,
+            ast.List,
+            ast.Tuple,
+            ast.Dict,
+        )
+
+        for node in ast.walk(parsed):
+            if not isinstance(node, allowed_nodes):
+                return False
+            if isinstance(node, ast.Name) and node.id != "request":
+                return False
+        return True
         
     def _compile_function(self) -> Callable:
         """Compile the AI-generated function."""
         try:
+            validation_issues = self._validate_function_ast(self.function_code)
+            if validation_issues:
+                raise ValueError("; ".join(validation_issues))
+
             namespace = {
                 'HookAction': HookAction,
                 'datetime': datetime,
@@ -77,6 +163,8 @@ class DynamicHook:
                 '__builtins__': {
                     'len': len, 'str': str, 'int': int, 'float': float,
                     'bool': bool, 'dict': dict, 'list': list, 'tuple': tuple,
+                    'set': set, 'min': min, 'max': max, 'sum': sum,
+                    'any': any, 'all': all, 'sorted': sorted, 'enumerate': enumerate,
                     'print': lambda *args: debug_logger.log_info("hook_function", self.name, " ".join(map(str, args)))
                 }
             }
@@ -117,13 +205,24 @@ class DynamicHook:
             
             # Check custom conditions (if any)
             if 'custom_condition' in self.requirements:
-                condition_code = self.requirements['custom_condition']
-                namespace = {'request': request, '__builtins__': {'len': len, 'str': str}}
+                condition_code = str(self.requirements['custom_condition']).strip()
+                if not self._is_safe_condition_expression(condition_code):
+                    debug_logger.log_warning(
+                        "dynamic_hook",
+                        "matches",
+                        f"Rejected unsafe custom_condition in hook {self.name}",
+                    )
+                    return False
                 try:
-                    result = eval(condition_code, namespace)
+                    request_data = request.to_dict()
+                    result = eval(
+                        compile(condition_code, "<hook_condition>", "eval"),
+                        {"__builtins__": {}},
+                        {"request": request_data},
+                    )
                     if not result:
                         return False
-                except:
+                except Exception:
                     return False
             
             return True
@@ -162,6 +261,7 @@ class DynamicHookSystem:
     def __init__(self):
         self.hooks: Dict[str, DynamicHook] = {}
         self.instance_hooks: Dict[str, List[str]] = {}  # instance_id -> list of hook_ids
+        self.global_hook_ids: List[str] = []
         self._lock = asyncio.Lock()
     
     async def setup_interception(self, tab, instance_id: str):
@@ -263,9 +363,10 @@ class DynamicHookSystem:
         """Process hooks for a request/response in real-time with priority chain processing."""
         try:
             instance_hook_ids = self.instance_hooks.get(request.instance_id, [])
+            hook_ids_to_check = list(dict.fromkeys(instance_hook_ids + self.global_hook_ids))
             
             matching_hooks = []
-            for hook_id in instance_hook_ids:
+            for hook_id in hook_ids_to_check:
                 hook = self.hooks.get(hook_id)
                 if hook and hook.status == "active" and hook.request_stage == request.stage and hook.matches(request):
                     matching_hooks.append(hook)
@@ -344,13 +445,19 @@ class DynamicHookSystem:
                 self.hooks[hook_id] = hook
                 
                 if instance_ids:
+                    hook.instance_ids = list(instance_ids)
                     for instance_id in instance_ids:
                         if instance_id not in self.instance_hooks:
                             self.instance_hooks[instance_id] = []
-                        self.instance_hooks[instance_id].append(hook_id)
+                        if hook_id not in self.instance_hooks[instance_id]:
+                            self.instance_hooks[instance_id].append(hook_id)
                 else:
+                    hook.instance_ids = []
+                    if hook_id not in self.global_hook_ids:
+                        self.global_hook_ids.append(hook_id)
                     for instance_id in self.instance_hooks:
-                        self.instance_hooks[instance_id].append(hook_id)
+                        if hook_id not in self.instance_hooks[instance_id]:
+                            self.instance_hooks[instance_id].append(hook_id)
             
             debug_logger.log_info("dynamic_hook_system", "create_hook", f"Created hook {name} with ID {hook_id}")
             return hook_id
@@ -399,6 +506,8 @@ class DynamicHookSystem:
             async with self._lock:
                 if hook_id in self.hooks:
                     del self.hooks[hook_id]
+                    if hook_id in self.global_hook_ids:
+                        self.global_hook_ids.remove(hook_id)
                     
                     for instance_id in self.instance_hooks:
                         if hook_id in self.instance_hooks[instance_id]:
@@ -417,6 +526,9 @@ class DynamicHookSystem:
         """Add a new browser instance."""
         if instance_id not in self.instance_hooks:
             self.instance_hooks[instance_id] = []
+        for hook_id in self.global_hook_ids:
+            if hook_id not in self.instance_hooks[instance_id]:
+                self.instance_hooks[instance_id].append(hook_id)
     
     async def _execute_hook_action(self, tab, request: RequestInfo, action: HookAction, event=None):
         """Execute a hook action for either request or response stage."""

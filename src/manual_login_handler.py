@@ -408,21 +408,27 @@ class ManualLoginHandler:
                 elif repo_root_candidate.parent.exists():
                     file_path = repo_root_candidate
             
-            # Read existing cookies from file to preserve non-overlapping entries
-            existing_lines = []
+            # Read existing cookies to preserve entries that are not overwritten.
+            existing_cookie_lines: Dict[tuple, str] = {}
             if file_path.exists():
                 try:
                     content = file_path.read_text(encoding="utf-8-sig", errors="ignore")
-                    existing_lines = [
-                        l for l in content.splitlines()
-                        if l.strip() and (l.startswith('#') or l.startswith('//'))
-                    ]
+                    for raw_line in content.splitlines():
+                        line = raw_line.strip()
+                        if not line or line.startswith('#') or line.startswith('//'):
+                            continue
+                        parts = line.split('\t')
+                        if len(parts) != 7:
+                            continue
+                        domain_field, _include_subdomains, path, _secure, _expires, name, _value = parts
+                        normalized_domain = domain_field.replace('#HttpOnly_', '', 1)
+                        cookie_key = (normalized_domain, name, path or '/')
+                        existing_cookie_lines[cookie_key] = line
                 except Exception:
                     pass
             
             # Build Netscape cookie lines from browser cookies
-            new_cookie_set = set()  # Track (domain, name, path) to avoid duplicates
-            cookie_lines = []
+            new_cookie_lines: Dict[tuple, str] = {}
             
             for cookie in cookies_response:
                 domain = getattr(cookie, 'domain', '') or ''
@@ -437,9 +443,6 @@ class ManualLoginHandler:
                     continue
                 
                 cookie_key = (domain, name, path)
-                if cookie_key in new_cookie_set:
-                    continue
-                new_cookie_set.add(cookie_key)
                 
                 # Netscape format: domain  include_subdomains  path  secure  expires  name  value
                 # include_subdomains=TRUE when domain starts with '.' (applies to subdomains)
@@ -452,24 +455,29 @@ class ManualLoginHandler:
                 domain_field = f"#HttpOnly_{domain}" if http_only else domain
                 
                 line = f"{domain_field}\t{include_subdomains_flag}\t{path}\t{secure_flag}\t{expires_int}\t{name}\t{value}"
-                cookie_lines.append(line)
+                new_cookie_lines[cookie_key] = line
+
+            # Merge existing + new cookies, where new cookies overwrite same key.
+            merged_cookie_lines = dict(existing_cookie_lines)
+            merged_cookie_lines.update(new_cookie_lines)
             
             # Write cookies file
             header = "# Netscape HTTP Cookie File\n# Auto-saved by stealth_browser after manual login\n# https://curl.se/docs/http-cookies.html\n\n"
             
             file_path.write_text(
-                header + "\n".join(cookie_lines) + "\n",
+                header + "\n".join(merged_cookie_lines.values()) + "\n",
                 encoding="utf-8"
             )
             
             debug_logger.log_info(
                 "manual_login_handler",
                 "_save_cookies_from_browser",
-                f"Saved {len(cookie_lines)} cookies to {file_path}"
+                f"Saved {len(new_cookie_lines)} updated cookies ({len(merged_cookie_lines)} total) to {file_path}"
             )
             
             return {
-                'cookies_saved': len(cookie_lines),
+                'cookies_saved': len(new_cookie_lines),
+                'cookies_total': len(merged_cookie_lines),
                 'file_path': str(file_path),
             }
             

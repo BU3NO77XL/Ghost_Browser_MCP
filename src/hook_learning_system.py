@@ -534,13 +534,40 @@ def process_request(request):
                 issues.append("Function must define 'process_request(request)' function")
             
             # Check for dangerous operations
-            dangerous_nodes = []
+            banned_function_calls = {
+                "eval",
+                "exec",
+                "open",
+                "input",
+                "compile",
+                "__import__",
+                "globals",
+                "locals",
+                "vars",
+                "getattr",
+                "setattr",
+                "delattr",
+            }
+            banned_attributes = {
+                "__class__",
+                "__mro__",
+                "__bases__",
+                "__subclasses__",
+                "__globals__",
+                "__code__",
+                "__closure__",
+                "__dict__",
+            }
             for node in ast.walk(parsed):
                 if isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom):
-                    warnings.append(f"Imports may not work in hook context: {ast.dump(node)}")
+                    issues.append("Imports are not allowed in hook functions")
                 elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-                    if node.func.id in ['eval', 'exec', 'open', 'input']:
+                    if node.func.id in banned_function_calls:
                         issues.append(f"Dangerous function call: {node.func.id}")
+                elif isinstance(node, ast.Attribute) and node.attr in banned_attributes:
+                    issues.append(f"Access to unsafe attribute is not allowed: {node.attr}")
+                elif isinstance(node, ast.Global) or isinstance(node, ast.Nonlocal):
+                    issues.append("global/nonlocal statements are not allowed in hook functions")
             
             return {
                 "valid": len(issues) == 0,

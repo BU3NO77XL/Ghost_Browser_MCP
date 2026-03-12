@@ -316,8 +316,7 @@ def process_request(request):
             elif action == "log":
                 function_code = '''
 def process_request(request):
-    import sys
-    print(f"[HOOK LOG] {request['method']} {request['url']}", file=sys.stderr)
+    print(f"[HOOK LOG] {request['method']} {request['url']}")
     return HookAction(action="continue")
 '''
             else:

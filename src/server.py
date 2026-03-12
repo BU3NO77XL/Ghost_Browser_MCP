@@ -87,10 +87,8 @@ async def app_lifespan(server):
                 debug_logger.log_info(
                     "server",
                     "storage_cleanup",
-                    f"Clearing in-memory storage with {len(persistent_instances['instances'])} instances...",
+                    f"Preserving persisted storage with {len(persistent_instances['instances'])} instances",
                 )
-                persistent_storage.clear_all()
-                debug_logger.log_info("server", "storage_cleanup", "In-memory storage cleared")
         except Exception as e:
             debug_logger.log_error("server", "storage_cleanup", e)
         debug_logger.log_info("server", "shutdown", "Browser Automation MCP Server shutdown complete")
@@ -2769,9 +2767,6 @@ async def list_cdp_commands() -> List[str]:
     Returns:
         List[str]: List of available CDP command names.
     """
-    guard = _check_pending_login_guard(instance_id)
-    if guard:
-        return guard
     return await cdp_function_executor.list_cdp_commands()
 
 
@@ -3326,7 +3321,7 @@ def validate_hook_function(function_code: str) -> Dict[str, Any]:
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Stealth Browser MCP Server with 90 tools")
+    parser = argparse.ArgumentParser(description="Stealth Browser MCP Server with 92 tools")
     parser.add_argument("--transport", choices=["stdio", "http"], default="stdio",
                       help="Transport protocol to use")
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", 8000)),
@@ -3366,17 +3361,17 @@ if __name__ == "__main__":
     
     if args.list_sections:
         print("Available tool sections:")
-        print("  browser-management: Core browser operations (11 tools)")
-        print("  element-interaction: Page interaction and element manipulation (8 tools)")
-        print("  element-extraction: Element cloning and extraction (10 tools)")
+        print("  browser-management: Core browser operations (10 tools)")
+        print("  element-interaction: Page interaction and element manipulation (11 tools)")
+        print("  element-extraction: Element cloning and extraction (9 tools)")
         print("  file-extraction: File-based extraction tools (9 tools)")
-        print("  network-debugging: Network monitoring and interception (10 tools)")
-        print("  cdp-functions: Chrome DevTools Protocol function execution (15 tools)")
+        print("  network-debugging: Network monitoring and interception (5 tools)")
+        print("  cdp-functions: Chrome DevTools Protocol function execution (13 tools)")
         print("  progressive-cloning: Advanced element cloning system (10 tools)")
         print("  cookies-storage: Cookie and storage management (3 tools)")
         print("  tabs: Tab management (5 tools)")
-        print("  debugging: Debug and system tools (6 tools)")
-        print("  dynamic-hooks: AI-powered network hook system (12 tools)")
+        print("  debugging: Debug and system tools (7 tools)")
+        print("  dynamic-hooks: AI-powered network hook system (10 tools)")
         print("\nUse --disable-<section-name> to disable specific sections")
         print("Use --minimal to enable only core functionality")
         sys.exit(0)

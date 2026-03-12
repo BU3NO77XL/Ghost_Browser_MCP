@@ -247,3 +247,5 @@ CLAUDE.md
 AGENTS.md
 .mcp.json
 Checklist.md
+src/.storage/
+src/.tmp_stealth_storage_*.json
