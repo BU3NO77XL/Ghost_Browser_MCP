@@ -1,6 +1,7 @@
 """Pytest configuration and fixtures."""
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -16,6 +17,14 @@ from login_watcher import login_watcher
 from manual_login_handler import manual_login_handler
 from models import BrowserOptions
 from network_interceptor import NetworkInterceptor
+
+# Detect CI environment - browser tests need no_sandbox in containers
+IS_CI = os.getenv("CI") == "true"
+
+
+def skip_if_ci(reason="Requires real browser"):
+    """Skip test if running in CI environment."""
+    return pytest.mark.skipif(IS_CI, reason=reason)
 
 
 @pytest.fixture(scope="session")
@@ -46,6 +55,8 @@ async def browser_manager():
 @pytest_asyncio.fixture(scope="function")
 async def browser_instance(browser_manager):
     """Create a browser instance for testing."""
+    if IS_CI:
+        pytest.skip("Skipping browser spawn test in CI (no display)")
     options = BrowserOptions(headless=False, viewport_width=1280, viewport_height=720)
     instance = await browser_manager.spawn_browser(options)
     yield instance

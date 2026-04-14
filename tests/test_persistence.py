@@ -11,12 +11,15 @@ These tests verify:
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+IS_CI = os.getenv("CI") == "true"
 
 from browser_manager import BrowserManager
 from models import BrowserOptions
@@ -27,6 +30,7 @@ class TestStoragePersistence:
     """Test that instances are correctly persisted and removed from disk."""
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(IS_CI, reason="Requires real browser (not available in CI)")
     async def test_instance_stored_on_spawn(self, browser_manager):
         """Instance must appear in persistent storage immediately after spawn."""
         options = BrowserOptions(headless=False, viewport_width=1280, viewport_height=720)
@@ -40,6 +44,7 @@ class TestStoragePersistence:
         await browser_manager.close_instance(instance.instance_id)
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(IS_CI, reason="Requires real browser (not available in CI)")
     async def test_instance_removed_on_close(self, browser_manager):
         """Instance must be removed from persistent storage after close."""
         options = BrowserOptions(headless=False, viewport_width=1280, viewport_height=720)
@@ -102,6 +107,7 @@ class TestStoragePersistence:
         ), "Stale instances should be cleared on startup to prevent ghost instances"
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(IS_CI, reason="Requires real browser (not available in CI)")
     async def test_no_stale_instances_after_close(self, browser_manager):
         """After closing all instances, storage should be empty."""
         options = BrowserOptions(headless=False, viewport_width=1280, viewport_height=720)
@@ -123,6 +129,7 @@ class TestStaleInstanceDetection:
     """Test that stale instances in storage are correctly identified."""
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(IS_CI, reason="Requires real browser (not available in CI)")
     async def test_list_instances_shows_stored_vs_active(self, browser_manager):
         """list_instances should distinguish active vs stored-only instances."""
         # Manually inject a stale instance into storage
