@@ -45,7 +45,7 @@ Issues = "https://github.com/vibheksoni/stealth-browser-mcp/issues"
 # Code formatting
 [tool.black]
 line-length = 100
-target-version = ["py310", "py311", "py312", "py313"]
+target-version = ["py310", "py311", "py312"]
 
 [tool.isort]
 profile = "black"
@@ -70,6 +70,8 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-timeout>=2.4.0",
     "bandit>=1.9.0",
+    "pip-audit>=2.10.0",
+    "safety>=3.6.0",
     "black>=26.3.0",
     "isort>=8.0.1",
     "mypy>=1.19.1",

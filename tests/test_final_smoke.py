@@ -34,32 +34,31 @@ from manual_login_handler import manual_login_handler
 from login_watcher import login_watcher
 from persistent_storage import persistent_storage
 
-
 # ── MCP tool shortcuts ────────────────────────────────────────────────────────
-spawn_browser         = _srv.spawn_browser
-list_instances        = _srv.list_instances
-close_instance        = _srv.close_instance
+spawn_browser = _srv.spawn_browser
+list_instances = _srv.list_instances
+close_instance = _srv.close_instance
 check_instance_health = _srv.check_instance_health
-navigate              = _srv.navigate
-confirm_manual_login  = _srv.confirm_manual_login
-check_login_status    = _srv.check_login_status
-get_instance_state    = _srv.get_instance_state
-execute_script        = _srv.execute_script
-get_page_content      = _srv.get_page_content
-take_screenshot       = _srv.take_screenshot
-query_elements        = _srv.query_elements
-click_element         = _srv.click_element
-type_text             = _srv.type_text
-scroll_page           = _srv.scroll_page
-wait_for_element      = _srv.wait_for_element
-get_cookies           = _srv.get_cookies
-set_cookie            = _srv.set_cookie
-clear_cookies         = _srv.clear_cookies
+navigate = _srv.navigate
+confirm_manual_login = _srv.confirm_manual_login
+check_login_status = _srv.check_login_status
+get_instance_state = _srv.get_instance_state
+execute_script = _srv.execute_script
+get_page_content = _srv.get_page_content
+take_screenshot = _srv.take_screenshot
+query_elements = _srv.query_elements
+click_element = _srv.click_element
+type_text = _srv.type_text
+scroll_page = _srv.scroll_page
+wait_for_element = _srv.wait_for_element
+get_cookies = _srv.get_cookies
+set_cookie = _srv.set_cookie
+clear_cookies = _srv.clear_cookies
 list_network_requests = _srv.list_network_requests
-list_tabs             = _srv.list_tabs
-new_tab               = _srv.new_tab
-switch_tab            = _srv.switch_tab
-close_tab             = _srv.close_tab
+list_tabs = _srv.list_tabs
+new_tab = _srv.new_tab
+switch_tab = _srv.switch_tab
+close_tab = _srv.close_tab
 
 
 class TestFinalSmoke:
@@ -125,10 +124,18 @@ class TestFinalSmoke:
 
             # ── STEP 6: Cookies ───────────────────────────────────────────────
             print("[6/14] Cookie set / get / clear...")
-            assert await set_cookie(iid, name="smoke_session", value="abc123",
-                                    domain="httpbin.org", path="/") is True
-            assert await set_cookie(iid, name="smoke_csrf", value="xyz789",
-                                    domain="httpbin.org", path="/") is True
+            assert (
+                await set_cookie(
+                    iid, name="smoke_session", value="abc123", domain="httpbin.org", path="/"
+                )
+                is True
+            )
+            assert (
+                await set_cookie(
+                    iid, name="smoke_csrf", value="xyz789", domain="httpbin.org", path="/"
+                )
+                is True
+            )
 
             cookies = await get_cookies(iid)
             assert isinstance(cookies, list)
@@ -170,9 +177,7 @@ class TestFinalSmoke:
             tab = await _srv.browser_manager.get_tab(iid)
 
             # Register as pending (simulates navigate() detecting login page)
-            await manual_login_handler.register_pending_login(
-                iid, tab, "https://httpbin.org/html"
-            )
+            await manual_login_handler.register_pending_login(iid, tab, "https://httpbin.org/html")
 
             # Verify pending
             status = await check_login_status(iid)

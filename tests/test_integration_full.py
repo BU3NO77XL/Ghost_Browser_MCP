@@ -29,37 +29,38 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import server as _srv
 
 # ── shortcuts to MCP tool functions ──────────────────────────────────────────
-spawn_browser         = _srv.spawn_browser
-list_instances        = _srv.list_instances
-close_instance        = _srv.close_instance
+spawn_browser = _srv.spawn_browser
+list_instances = _srv.list_instances
+close_instance = _srv.close_instance
 check_instance_health = _srv.check_instance_health
-navigate              = _srv.navigate
-confirm_manual_login  = _srv.confirm_manual_login
-check_login_status    = _srv.check_login_status
-get_instance_state    = _srv.get_instance_state
-execute_script        = _srv.execute_script
-get_page_content      = _srv.get_page_content
-take_screenshot       = _srv.take_screenshot
-query_elements        = _srv.query_elements
-click_element         = _srv.click_element
-type_text             = _srv.type_text
-scroll_page           = _srv.scroll_page
-wait_for_element      = _srv.wait_for_element
-get_cookies           = _srv.get_cookies
-set_cookie            = _srv.set_cookie
-clear_cookies         = _srv.clear_cookies
+navigate = _srv.navigate
+confirm_manual_login = _srv.confirm_manual_login
+check_login_status = _srv.check_login_status
+get_instance_state = _srv.get_instance_state
+execute_script = _srv.execute_script
+get_page_content = _srv.get_page_content
+take_screenshot = _srv.take_screenshot
+query_elements = _srv.query_elements
+click_element = _srv.click_element
+type_text = _srv.type_text
+scroll_page = _srv.scroll_page
+wait_for_element = _srv.wait_for_element
+get_cookies = _srv.get_cookies
+set_cookie = _srv.set_cookie
+clear_cookies = _srv.clear_cookies
 list_network_requests = _srv.list_network_requests
-list_tabs             = _srv.list_tabs
-new_tab               = _srv.new_tab
-switch_tab            = _srv.switch_tab
-close_tab             = _srv.close_tab
-go_back               = _srv.go_back
-reload_page           = _srv.reload_page
+list_tabs = _srv.list_tabs
+new_tab = _srv.new_tab
+switch_tab = _srv.switch_tab
+close_tab = _srv.close_tab
+go_back = _srv.go_back
+reload_page = _srv.reload_page
 
 
 async def _spawn() -> str:
     r = await spawn_browser(headless=False, viewport_width=1280, viewport_height=720)
     return r["instance_id"]
+
 
 async def _close(iid: str):
     try:
@@ -77,9 +78,11 @@ class TestWebSocketHealth:
     async def test_health_alive_after_multiple_navigations(self):
         """WebSocket must stay alive after 3 consecutive navigations."""
         iid = await _spawn()
-        for url in ["https://httpbin.org/html",
-                    "https://httpbin.org/json",
-                    "https://httpbin.org/uuid"]:
+        for url in [
+            "https://httpbin.org/html",
+            "https://httpbin.org/json",
+            "https://httpbin.org/uuid",
+        ]:
             await navigate(iid, url, inject_cookies=False)
 
         health = await check_instance_health(iid)
@@ -178,8 +181,7 @@ class TestCookieFullCycle:
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
-        await set_cookie(iid, name="session_token", value="abc123",
-                         domain="httpbin.org", path="/")
+        await set_cookie(iid, name="session_token", value="abc123", domain="httpbin.org", path="/")
 
         cookies = await get_cookies(iid)
         assert isinstance(cookies, list)
@@ -194,8 +196,7 @@ class TestCookieFullCycle:
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
-        await set_cookie(iid, name="persist_test", value="yes",
-                         domain="httpbin.org", path="/")
+        await set_cookie(iid, name="persist_test", value="yes", domain="httpbin.org", path="/")
 
         # Navigate to another page on same domain
         await navigate(iid, "https://httpbin.org/json", inject_cookies=False)
@@ -210,8 +211,7 @@ class TestCookieFullCycle:
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
-        await set_cookie(iid, name="to_clear", value="yes",
-                         domain="httpbin.org", path="/")
+        await set_cookie(iid, name="to_clear", value="yes", domain="httpbin.org", path="/")
 
         result = await clear_cookies(iid)
         assert result is True
@@ -229,8 +229,7 @@ class TestCookieFullCycle:
             ("cookie_c", "value_c"),
         ]
         for name, value in cookies_to_set:
-            result = await set_cookie(iid, name=name, value=value,
-                                      domain="httpbin.org", path="/")
+            result = await set_cookie(iid, name=name, value=value, domain="httpbin.org", path="/")
             assert result is True, f"Failed to set cookie {name}"
 
         await _close(iid)
@@ -332,7 +331,9 @@ class TestDOMInteraction:
         await navigate(iid, "https://httpbin.org/forms/post", inject_cookies=False)
 
         await type_text(iid, "input[name='custname']", "Integration Test")
-        value = await execute_script(iid, "document.querySelector(\"input[name='custname']\").value")
+        value = await execute_script(
+            iid, "document.querySelector(\"input[name='custname']\").value"
+        )
         assert value["result"] == "Integration Test"
         await _close(iid)
 
@@ -443,9 +444,7 @@ class TestLoginGuardIntegration:
         tab = await _srv.browser_manager.get_tab(iid)
 
         # Register as pending login
-        await manual_login_handler.register_pending_login(
-            iid, tab, "https://httpbin.org/html"
-        )
+        await manual_login_handler.register_pending_login(iid, tab, "https://httpbin.org/html")
 
         # These tools should be blocked
         blocked_results = await asyncio.gather(
@@ -474,9 +473,7 @@ class TestLoginGuardIntegration:
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
         tab = await _srv.browser_manager.get_tab(iid)
 
-        await manual_login_handler.register_pending_login(
-            iid, tab, "https://httpbin.org/html"
-        )
+        await manual_login_handler.register_pending_login(iid, tab, "https://httpbin.org/html")
 
         # Simulate watcher detection
         async with login_watcher._lock:
@@ -555,10 +552,17 @@ class TestFullAIWorkflow:
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
         # Set session cookies (simulating post-login state)
-        await set_cookie(iid, name="sessionid", value="fake_session_123",
-                         domain="httpbin.org", path="/", secure=False)
-        await set_cookie(iid, name="csrftoken", value="fake_csrf_456",
-                         domain="httpbin.org", path="/")
+        await set_cookie(
+            iid,
+            name="sessionid",
+            value="fake_session_123",
+            domain="httpbin.org",
+            path="/",
+            secure=False,
+        )
+        await set_cookie(
+            iid, name="csrftoken", value="fake_csrf_456", domain="httpbin.org", path="/"
+        )
 
         # Navigate to another page — use a stable page, not /cookies which redirects
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -620,9 +624,7 @@ class TestFullAIWorkflow:
         tab = await _srv.browser_manager.get_tab(iid)
 
         # Simulate navigate() detecting login page
-        await manual_login_handler.register_pending_login(
-            iid, tab, "https://httpbin.org/html"
-        )
+        await manual_login_handler.register_pending_login(iid, tab, "https://httpbin.org/html")
 
         # AI calls check_login_status — sees pending
         status = await check_login_status(iid)
@@ -669,8 +671,7 @@ class TestConcurrentToolCalls:
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
         tasks = [
-            execute_script(iid, f"window.__test_{i} = {i}; window.__test_{i}")
-            for i in range(5)
+            execute_script(iid, f"window.__test_{i} = {i}; window.__test_{i}") for i in range(5)
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 

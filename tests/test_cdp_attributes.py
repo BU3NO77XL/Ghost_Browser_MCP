@@ -23,10 +23,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import nodriver as uc
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. Static contract — verify field names on CDP dataclasses
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestCDPObjectContracts:
     """Verify every attribute used in cloner code exists on the CDP objects."""
@@ -59,8 +59,9 @@ class TestCDPObjectContracts:
 
     def test_dom_node_no_tag_name(self):
         """tag_name does NOT exist — code must use node_name instead."""
-        assert "tag_name" not in uc.cdp.dom.Node.__dataclass_fields__, \
-            "dom.Node has no tag_name — use node_name"
+        assert (
+            "tag_name" not in uc.cdp.dom.Node.__dataclass_fields__
+        ), "dom.Node has no tag_name — use node_name"
 
     # ── css.CSSStyle ─────────────────────────────────────────────────────────
     def test_css_style_has_css_text(self):
@@ -74,13 +75,15 @@ class TestCDPObjectContracts:
 
     def test_css_style_no_css_text_underscore(self):
         """css_text_ does NOT exist — trailing underscore is wrong."""
-        assert "css_text_" not in uc.cdp.css.CSSStyle.__dataclass_fields__, \
-            "CSSStyle has no css_text_ — use css_text"
+        assert (
+            "css_text_" not in uc.cdp.css.CSSStyle.__dataclass_fields__
+        ), "CSSStyle has no css_text_ — use css_text"
 
     def test_css_style_no_css_properties_underscore(self):
         """css_properties_ does NOT exist."""
-        assert "css_properties_" not in uc.cdp.css.CSSStyle.__dataclass_fields__, \
-            "CSSStyle has no css_properties_ — use css_properties"
+        assert (
+            "css_properties_" not in uc.cdp.css.CSSStyle.__dataclass_fields__
+        ), "CSSStyle has no css_properties_ — use css_properties"
 
     # ── css.CSSProperty ──────────────────────────────────────────────────────
     def test_css_property_has_name(self):
@@ -133,8 +136,9 @@ class TestCDPObjectContracts:
 
     def test_css_rule_no_style_sheet_id_underscore(self):
         """style_sheet_id_ does NOT exist."""
-        assert "style_sheet_id_" not in uc.cdp.css.CSSRule.__dataclass_fields__, \
-            "CSSRule has no style_sheet_id_ — use style_sheet_id"
+        assert (
+            "style_sheet_id_" not in uc.cdp.css.CSSRule.__dataclass_fields__
+        ), "CSSRule has no style_sheet_id_ — use style_sheet_id"
 
     # ── css.SelectorList ──────────────────────────────────────────────────────
     def test_selector_list_has_text(self):
@@ -155,13 +159,15 @@ class TestCDPObjectContracts:
 
     def test_pseudo_element_no_matches_underscore(self):
         """matches_ does NOT exist."""
-        assert "matches_" not in uc.cdp.css.PseudoElementMatches.__dataclass_fields__, \
-            "PseudoElementMatches has no matches_ — use matches"
+        assert (
+            "matches_" not in uc.cdp.css.PseudoElementMatches.__dataclass_fields__
+        ), "PseudoElementMatches has no matches_ — use matches"
 
     def test_pseudo_element_no_pseudo_identifier_underscore(self):
         """pseudo_identifier_ does NOT exist."""
-        assert "pseudo_identifier_" not in uc.cdp.css.PseudoElementMatches.__dataclass_fields__, \
-            "PseudoElementMatches has no pseudo_identifier_ — use pseudo_identifier"
+        assert (
+            "pseudo_identifier_" not in uc.cdp.css.PseudoElementMatches.__dataclass_fields__
+        ), "PseudoElementMatches has no pseudo_identifier_ — use pseudo_identifier"
 
     # ── css.InheritedStyleEntry ───────────────────────────────────────────────
     def test_inherited_style_has_inline_style(self):
@@ -242,6 +248,7 @@ class TestCDPObjectContracts:
 # 2. Instantiation tests — create real objects and access attributes
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestCDPObjectInstantiation:
     """Create real CDP objects and verify attribute access doesn't raise."""
 
@@ -252,7 +259,7 @@ class TestCDPObjectInstantiation:
             shorthand_entries=[],
         )
         # These are the exact accesses in _css_style_to_dict
-        _ = style.css_text        # was css_text_ — FIXED
+        _ = style.css_text  # was css_text_ — FIXED
         _ = style.css_properties  # was css_properties_ — FIXED
         assert True
 
@@ -281,7 +288,7 @@ class TestCDPObjectInstantiation:
             matches=[],
         )
         _ = pe.pseudo_type
-        _ = pe.matches          # was matches_ — FIXED
+        _ = pe.matches  # was matches_ — FIXED
         _ = pe.pseudo_identifier  # was pseudo_identifier_ — FIXED
         assert True
 
@@ -323,6 +330,7 @@ class TestCDPObjectInstantiation:
 # 3. Live browser tests — run actual extraction and check for attribute errors
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestCDPLiveExtraction:
     """Run real CDP extraction and verify no attribute errors occur."""
 
@@ -337,18 +345,25 @@ class TestCDPLiveExtraction:
 
         iid = None
         try:
-            result = await _srv.spawn_browser(headless=False, viewport_width=1280, viewport_height=720)
+            result = await _srv.spawn_browser(
+                headless=False, viewport_width=1280, viewport_height=720
+            )
             iid = result["instance_id"]
             await _srv.navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
             tab = await _srv.browser_manager.get_tab(iid)
             from cdp_element_cloner import CDPElementCloner
+
             cloner = CDPElementCloner()
 
-            extraction = await cloner.extract_complete_element_cdp(tab, "body", include_children=False)
+            extraction = await cloner.extract_complete_element_cdp(
+                tab, "body", include_children=False
+            )
 
             # Must not be an error
-            assert "error" not in extraction, f"CDP extraction returned error: {extraction.get('error')}"
+            assert (
+                "error" not in extraction
+            ), f"CDP extraction returned error: {extraction.get('error')}"
 
             # Must have expected structure
             assert "element" in extraction
@@ -396,14 +411,18 @@ class TestCDPLiveExtraction:
 
         iid = None
         try:
-            result = await _srv.spawn_browser(headless=False, viewport_width=1280, viewport_height=720)
+            result = await _srv.spawn_browser(
+                headless=False, viewport_width=1280, viewport_height=720
+            )
             iid = result["instance_id"]
             await _srv.navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
             tab = await _srv.browser_manager.get_tab(iid)
             cloner = CDPElementCloner()
 
-            extraction = await cloner.extract_complete_element_cdp(tab, "body", include_children=True)
+            extraction = await cloner.extract_complete_element_cdp(
+                tab, "body", include_children=True
+            )
 
             assert "error" not in extraction
             children = extraction["element"]["children"]
@@ -429,7 +448,9 @@ class TestCDPLiveExtraction:
 
         iid = None
         try:
-            result = await _srv.spawn_browser(headless=False, viewport_width=1280, viewport_height=720)
+            result = await _srv.spawn_browser(
+                headless=False, viewport_width=1280, viewport_height=720
+            )
             iid = result["instance_id"]
             await _srv.navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
@@ -458,7 +479,9 @@ class TestCDPLiveExtraction:
 
         iid = None
         try:
-            result = await _srv.spawn_browser(headless=False, viewport_width=1280, viewport_height=720)
+            result = await _srv.spawn_browser(
+                headless=False, viewport_width=1280, viewport_height=720
+            )
             iid = result["instance_id"]
             await _srv.navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 

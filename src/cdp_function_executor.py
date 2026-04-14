@@ -3,7 +3,7 @@ CDP Function Executor - Direct JavaScript function execution via Chrome DevTools
 
 This module provides comprehensive function execution capabilities using nodriver's CDP access:
 1. Direct CDP command execution
-2. JavaScript function discovery and execution  
+2. JavaScript function discovery and execution
 3. Dynamic script injection and execution
 4. Python-JavaScript bridge functionality
 """
@@ -94,15 +94,23 @@ class CDPFunctionExecutor:
         """
         try:
             await asyncio.wait_for(tab.send(uc.cdp.runtime.enable()), timeout=5.0)
-            debug_logger.log_info("cdp_function_executor", "enable_runtime", f"Runtime enabled for tab")
+            debug_logger.log_info(
+                "cdp_function_executor", "enable_runtime", f"Runtime enabled for tab"
+            )
             return True
         except asyncio.TimeoutError:
-            debug_logger.log_error("cdp_function_executor", "enable_runtime", "Timeout ao habilitar runtime - conexão WebSocket pode estar perdida")
+            debug_logger.log_error(
+                "cdp_function_executor",
+                "enable_runtime",
+                "Timeout ao habilitar runtime - conexão WebSocket pode estar perdida",
+            )
             return False
         except Exception as e:
             error_msg = str(e).lower()
-            if 'websocket' in error_msg or 'http 500' in error_msg:
-                debug_logger.log_error("cdp_function_executor", "enable_runtime", f"Conexão WebSocket perdida: {e}")
+            if "websocket" in error_msg or "http 500" in error_msg:
+                debug_logger.log_error(
+                    "cdp_function_executor", "enable_runtime", f"Conexão WebSocket perdida: {e}"
+                )
             else:
                 debug_logger.log_error("cdp_function_executor", "enable_runtime", e)
             return False
@@ -116,17 +124,33 @@ class CDPFunctionExecutor:
             List[str]: List of command names.
         """
         commands = [
-            "evaluate", "callFunctionOn", "addBinding", "removeBinding",
-            "compileScript", "runScript", "awaitPromise", "getProperties",
-            "getExceptionDetails", "globalLexicalScopeNames", "queryObjects",
-            "releaseObject", "releaseObjectGroup", "terminateExecution",
-            "setAsyncCallStackDepth", "setCustomObjectFormatterEnabled",
-            "setMaxCallStackSizeToCapture", "runIfWaitingForDebugger",
-            "discardConsoleEntries", "getHeapUsage", "getIsolateId"
+            "evaluate",
+            "callFunctionOn",
+            "addBinding",
+            "removeBinding",
+            "compileScript",
+            "runScript",
+            "awaitPromise",
+            "getProperties",
+            "getExceptionDetails",
+            "globalLexicalScopeNames",
+            "queryObjects",
+            "releaseObject",
+            "releaseObjectGroup",
+            "terminateExecution",
+            "setAsyncCallStackDepth",
+            "setCustomObjectFormatterEnabled",
+            "setMaxCallStackSizeToCapture",
+            "runIfWaitingForDebugger",
+            "discardConsoleEntries",
+            "getHeapUsage",
+            "getIsolateId",
         ]
         return commands
 
-    async def execute_cdp_command(self, tab: Tab, command: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_cdp_command(
+        self, tab: Tab, command: str, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Executes any CDP Runtime command with given parameters.
 
@@ -144,21 +168,15 @@ class CDPFunctionExecutor:
             if not cdp_method:
                 raise ValueError(f"Unknown CDP command: {command}")
             result = await tab.send(cdp_method(**params))
-            debug_logger.log_info("cdp_function_executor", "execute_cdp_command", f"Executed {command} with params: {params}")
-            return {
-                "success": True,
-                "result": result,
-                "command": command,
-                "params": params
-            }
+            debug_logger.log_info(
+                "cdp_function_executor",
+                "execute_cdp_command",
+                f"Executed {command} with params: {params}",
+            )
+            return {"success": True, "result": result, "command": command, "params": params}
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "execute_cdp_command", e)
-            return {
-                "success": False,
-                "error": str(e),
-                "command": command,
-                "params": params
-            }
+            return {"success": False, "error": str(e), "command": command, "params": params}
 
     async def get_execution_contexts(self, tab: Tab) -> List[ExecutionContext]:
         """
@@ -186,28 +204,30 @@ class CDPFunctionExecutor:
                 };
             })()
             """
-            result = await tab.send(uc.cdp.runtime.evaluate(
-                expression=script,
-                return_by_value=True,
-                await_promise=True
-            ))
+            result = await tab.send(
+                uc.cdp.runtime.evaluate(expression=script, return_by_value=True, await_promise=True)
+            )
             if result and result[0] and result[0].value:
                 context_data = result[0].value
                 contexts = []
-                for i, ctx in enumerate(context_data.get('contexts', [])):
-                    contexts.append(ExecutionContext(
-                        id=str(i),
-                        name=ctx['name'],
-                        origin=ctx['origin'],
-                        unique_id=f"{ctx['origin']}_{i}"
-                    ))
+                for i, ctx in enumerate(context_data.get("contexts", [])):
+                    contexts.append(
+                        ExecutionContext(
+                            id=str(i),
+                            name=ctx["name"],
+                            origin=ctx["origin"],
+                            unique_id=f"{ctx['origin']}_{i}",
+                        )
+                    )
                 return contexts
             return []
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "get_execution_contexts", e)
             return []
 
-    async def discover_global_functions(self, tab: Tab, context_id: str = None) -> List[FunctionInfo]:
+    async def discover_global_functions(
+        self, tab: Tab, context_id: str = None
+    ) -> List[FunctionInfo]:
         """
         Discovers all global JavaScript functions.
 
@@ -268,21 +288,23 @@ class CDPFunctionExecutor:
                 return functions;
             })()
             """
-            result = await tab.send(uc.cdp.runtime.evaluate(
-                expression=discovery_script,
-                return_by_value=True,
-                await_promise=True
-            ))
+            result = await tab.send(
+                uc.cdp.runtime.evaluate(
+                    expression=discovery_script, return_by_value=True, await_promise=True
+                )
+            )
             if result and result[0] and result[0].value:
                 functions_data = result[0].value
                 functions = []
                 for func_data in functions_data:
-                    functions.append(FunctionInfo(
-                        name=func_data['name'],
-                        path=func_data['path'],
-                        signature=func_data.get('signature'),
-                        description=func_data.get('description')
-                    ))
+                    functions.append(
+                        FunctionInfo(
+                            name=func_data["name"],
+                            path=func_data["path"],
+                            signature=func_data.get("signature"),
+                            description=func_data.get("description"),
+                        )
+                    )
                 return functions
             return []
         except Exception as e:
@@ -302,51 +324,70 @@ class CDPFunctionExecutor:
         """
         try:
             await self.enable_runtime(tab)
-            
-            object_result = await tab.send(uc.cdp.runtime.evaluate(
-                expression=object_path,
-                return_by_value=False
-            ))
-            
+
+            object_result = await tab.send(
+                uc.cdp.runtime.evaluate(expression=object_path, return_by_value=False)
+            )
+
             if not object_result or not object_result[0] or not object_result[0].object_id:
-                debug_logger.log_warning("cdp_function_executor", "discover_object_methods", f"Could not get object reference for {object_path}")
+                debug_logger.log_warning(
+                    "cdp_function_executor",
+                    "discover_object_methods",
+                    f"Could not get object reference for {object_path}",
+                )
                 return []
-                
+
             object_id = object_result[0].object_id
-            
-            properties_result = await tab.send(uc.cdp.runtime.get_properties(
-                object_id=object_id,
-                own_properties=False,
-                accessor_properties_only=False
-            ))
-            
+
+            properties_result = await tab.send(
+                uc.cdp.runtime.get_properties(
+                    object_id=object_id, own_properties=False, accessor_properties_only=False
+                )
+            )
+
             if not properties_result or not properties_result[0]:
-                debug_logger.log_warning("cdp_function_executor", "discover_object_methods", f"No properties returned for {object_path}")
+                debug_logger.log_warning(
+                    "cdp_function_executor",
+                    "discover_object_methods",
+                    f"No properties returned for {object_path}",
+                )
                 return []
-                
+
             properties = properties_result[0]
             methods = []
-            
+
             for prop in properties:
                 try:
                     if prop.value and prop.value.type_ == "function":
-                        methods.append(FunctionInfo(
-                            name=prop.name,
-                            path=f'{object_path}.{prop.name}',
-                            signature=prop.value.description or f"function {prop.name}()",
-                            description=f"Method {prop.name} of {object_path}"
-                        ))
+                        methods.append(
+                            FunctionInfo(
+                                name=prop.name,
+                                path=f"{object_path}.{prop.name}",
+                                signature=prop.value.description or f"function {prop.name}()",
+                                description=f"Method {prop.name} of {object_path}",
+                            )
+                        )
                 except Exception as e:
-                    debug_logger.log_warning("cdp_function_executor", "discover_object_methods", f"Error processing property {prop.name}: {e}")
+                    debug_logger.log_warning(
+                        "cdp_function_executor",
+                        "discover_object_methods",
+                        f"Error processing property {prop.name}: {e}",
+                    )
                     continue
-                    
-            debug_logger.log_info("cdp_function_executor", "discover_object_methods", f"Found {len(methods)} methods for {object_path}")
+
+            debug_logger.log_info(
+                "cdp_function_executor",
+                "discover_object_methods",
+                f"Found {len(methods)} methods for {object_path}",
+            )
             return methods
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "discover_object_methods", e)
             return []
 
-    async def call_discovered_function(self, tab: Tab, function_path: str, args: List[Any]) -> Dict[str, Any]:
+    async def call_discovered_function(
+        self, tab: Tab, function_path: str, args: List[Any]
+    ) -> Dict[str, Any]:
         """
         Calls a discovered JavaScript function with arguments.
 
@@ -360,7 +401,7 @@ class CDPFunctionExecutor:
         """
         try:
             await self.enable_runtime(tab)
-            js_args = json.dumps(args) if args else '[]'
+            js_args = json.dumps(args) if args else "[]"
             call_script = f"""
             (function() {{
                 try {{
@@ -399,11 +440,11 @@ class CDPFunctionExecutor:
                 }}
             }})()
             """
-            result = await tab.send(uc.cdp.runtime.evaluate(
-                expression=call_script,
-                return_by_value=True,
-                await_promise=True
-            ))
+            result = await tab.send(
+                uc.cdp.runtime.evaluate(
+                    expression=call_script, return_by_value=True, await_promise=True
+                )
+            )
             if result and result[0] and result[0].value:
                 return result[0].value
             elif result and result[1]:
@@ -411,22 +452,17 @@ class CDPFunctionExecutor:
                     "success": False,
                     "error": f"Runtime exception: {result[1].text}",
                     "function_path": function_path,
-                    "args": args
+                    "args": args,
                 }
             return {
                 "success": False,
                 "error": "No result returned",
                 "function_path": function_path,
-                "args": args
+                "args": args,
             }
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "call_discovered_function", e)
-            return {
-                "success": False,
-                "error": str(e),
-                "function_path": function_path,
-                "args": args
-            }
+            return {"success": False, "error": str(e), "function_path": function_path, "args": args}
 
     async def inspect_function_signature(self, tab: Tab, function_path: str) -> Dict[str, Any]:
         """
@@ -468,11 +504,11 @@ class CDPFunctionExecutor:
                 }}
             }})()
             """
-            result = await tab.send(uc.cdp.runtime.evaluate(
-                expression=inspect_script,
-                return_by_value=True,
-                await_promise=True
-            ))
+            result = await tab.send(
+                uc.cdp.runtime.evaluate(
+                    expression=inspect_script, return_by_value=True, await_promise=True
+                )
+            )
             if result and result[0] and result[0].value:
                 return result[0].value
             return {"success": False, "error": "No result returned"}
@@ -480,7 +516,9 @@ class CDPFunctionExecutor:
             debug_logger.log_error("cdp_function_executor", "inspect_function_signature", e)
             return {"success": False, "error": str(e)}
 
-    async def inject_and_execute_script(self, tab: Tab, script_code: str, context_id: str = None) -> Dict[str, Any]:
+    async def inject_and_execute_script(
+        self, tab: Tab, script_code: str, context_id: str = None
+    ) -> Dict[str, Any]:
         """
         Injects and executes custom JavaScript code.
 
@@ -515,12 +553,14 @@ class CDPFunctionExecutor:
                 }}
             }})()
             """
-            result = await tab.send(uc.cdp.runtime.evaluate(
-                expression=wrapped_script,
-                return_by_value=True,
-                await_promise=True,
-                allow_unsafe_eval_blocked_by_csp=True
-            ))
+            result = await tab.send(
+                uc.cdp.runtime.evaluate(
+                    expression=wrapped_script,
+                    return_by_value=True,
+                    await_promise=True,
+                    allow_unsafe_eval_blocked_by_csp=True,
+                )
+            )
             if result and result[0] and result[0].value:
                 return result[0].value
             elif result and result[1]:
@@ -528,14 +568,16 @@ class CDPFunctionExecutor:
                     "success": False,
                     "error": f"Runtime exception: {result[1].text}",
                     "line_number": result[1].line_number,
-                    "column_number": result[1].column_number
+                    "column_number": result[1].column_number,
                 }
             return {"success": False, "error": "No result returned"}
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "inject_and_execute_script", e)
             return {"success": False, "error": str(e)}
 
-    async def create_persistent_function(self, tab: Tab, function_name: str, function_code: str, instance_id: str) -> Dict[str, Any]:
+    async def create_persistent_function(
+        self, tab: Tab, function_name: str, function_code: str, instance_id: str
+    ) -> Dict[str, Any]:
         """
         Creates a persistent JavaScript function that survives page reloads.
 
@@ -572,11 +614,11 @@ class CDPFunctionExecutor:
                 }}
             }})()
             """
-            result = await tab.send(uc.cdp.runtime.evaluate(
-                expression=create_script,
-                return_by_value=True,
-                await_promise=True
-            ))
+            result = await tab.send(
+                uc.cdp.runtime.evaluate(
+                    expression=create_script, return_by_value=True, await_promise=True
+                )
+            )
             if result and result[0] and result[0].value:
                 return result[0].value
             return {"success": False, "error": "Failed to create function"}
@@ -584,7 +626,9 @@ class CDPFunctionExecutor:
             debug_logger.log_error("cdp_function_executor", "create_persistent_function", e)
             return {"success": False, "error": str(e)}
 
-    async def execute_function_sequence(self, tab: Tab, function_calls: List[FunctionCall]) -> List[Dict[str, Any]]:
+    async def execute_function_sequence(
+        self, tab: Tab, function_calls: List[FunctionCall]
+    ) -> List[Dict[str, Any]]:
         """
         Executes a sequence of function calls.
 
@@ -598,38 +642,43 @@ class CDPFunctionExecutor:
         results = []
         for i, func_call in enumerate(function_calls):
             try:
-                debug_logger.log_info("cdp_function_executor", "execute_function_sequence", f"Executing call {i+1}/{len(function_calls)}: {func_call.function_path}")
-                result = await self.call_discovered_function(
-                    tab,
-                    func_call.function_path,
-                    func_call.args
+                debug_logger.log_info(
+                    "cdp_function_executor",
+                    "execute_function_sequence",
+                    f"Executing call {i+1}/{len(function_calls)}: {func_call.function_path}",
                 )
-                results.append({
-                    "sequence_index": i,
-                    "function_call": {
-                        "function_path": func_call.function_path,
-                        "args": func_call.args,
-                        "context_id": func_call.context_id
-                    },
-                    "result": result
-                })
+                result = await self.call_discovered_function(
+                    tab, func_call.function_path, func_call.args
+                )
+                results.append(
+                    {
+                        "sequence_index": i,
+                        "function_call": {
+                            "function_path": func_call.function_path,
+                            "args": func_call.args,
+                            "context_id": func_call.context_id,
+                        },
+                        "result": result,
+                    }
+                )
             except Exception as e:
                 debug_logger.log_error("cdp_function_executor", "execute_function_sequence", e)
-                results.append({
-                    "sequence_index": i,
-                    "function_call": {
-                        "function_path": func_call.function_path,
-                        "args": func_call.args,
-                        "context_id": func_call.context_id
-                    },
-                    "result": {
-                        "success": False,
-                        "error": str(e)
+                results.append(
+                    {
+                        "sequence_index": i,
+                        "function_call": {
+                            "function_path": func_call.function_path,
+                            "args": func_call.args,
+                            "context_id": func_call.context_id,
+                        },
+                        "result": {"success": False, "error": str(e)},
                     }
-                })
+                )
         return results
 
-    async def create_python_binding(self, tab: Tab, binding_name: str, python_function: Callable) -> Dict[str, Any]:
+    async def create_python_binding(
+        self, tab: Tab, binding_name: str, python_function: Callable
+    ) -> Dict[str, Any]:
         """
         Creates a binding that allows JavaScript to call Python functions.
 
@@ -673,11 +722,11 @@ class CDPFunctionExecutor:
                 }};
             }})()
             """
-            result = await tab.send(uc.cdp.runtime.evaluate(
-                expression=wrapper_script,
-                return_by_value=True,
-                await_promise=True
-            ))
+            result = await tab.send(
+                uc.cdp.runtime.evaluate(
+                    expression=wrapper_script, return_by_value=True, await_promise=True
+                )
+            )
             if result and result[0] and result[0].value:
                 return result[0].value
             return {"success": False, "error": "Failed to create binding"}
@@ -698,16 +747,21 @@ class CDPFunctionExecutor:
         """
         try:
             js_code = self._translate_python_to_js(python_code)
-            debug_logger.log_info("cdp_function_executor", "execute_python_in_browser", f"Translated JS: {js_code}")
-            
+            debug_logger.log_info(
+                "cdp_function_executor", "execute_python_in_browser", f"Translated JS: {js_code}"
+            )
+
             import asyncio
+
             result = await asyncio.wait_for(
-                self.inject_and_execute_script(tab, js_code),
-                timeout=10.0
+                self.inject_and_execute_script(tab, js_code), timeout=10.0
             )
             return result
         except asyncio.TimeoutError:
-            return {"success": False, "error": "Python execution timeout - code may have infinite loop or syntax error"}
+            return {
+                "success": False,
+                "error": "Python execution timeout - code may have infinite loop or syntax error",
+            }
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "execute_python_in_browser", e)
             return {"success": False, "error": str(e)}
@@ -724,29 +778,41 @@ class CDPFunctionExecutor:
         """
         try:
             import py2js
-            
+
             js_code = py2js.convert(python_code)
-            debug_logger.log_info("cdp_function_executor", "_translate_python_to_js", f"py2js generated: {js_code}")
-            
-            lines = python_code.strip().split('\n')
+            debug_logger.log_info(
+                "cdp_function_executor", "_translate_python_to_js", f"py2js generated: {js_code}"
+            )
+
+            lines = python_code.strip().split("\n")
             last_line = lines[-1].strip() if lines else ""
-            
-            if (last_line and 
-                '=' not in last_line and 
-                not last_line.startswith(('def ', 'class ', 'if ', 'for ', 'while ', 'try:', 'with ', 'import ', 'from '))):
-                
+
+            if (
+                last_line
+                and "=" not in last_line
+                and not last_line.startswith(
+                    ("def ", "class ", "if ", "for ", "while ", "try:", "with ", "import ", "from ")
+                )
+            ):
+
                 wrapped_code = f"(() => {{ {js_code}; return {last_line}; }})()"
                 return wrapped_code
             else:
                 return f"(() => {{ {js_code}; }})()"
-                
+
         except ImportError:
-            debug_logger.log_warning("cdp_function_executor", "_translate_python_to_js", "py2js not available, using fallback")
+            debug_logger.log_warning(
+                "cdp_function_executor",
+                "_translate_python_to_js",
+                "py2js not available, using fallback",
+            )
             return self._fallback_python_to_js(python_code)
         except Exception as e:
-            debug_logger.log_error("cdp_function_executor", "_translate_python_to_js", e, {"python_code": python_code})
+            debug_logger.log_error(
+                "cdp_function_executor", "_translate_python_to_js", e, {"python_code": python_code}
+            )
             return self._fallback_python_to_js(python_code)
-    
+
     def _fallback_python_to_js(self, python_code: str) -> str:
         """
         Fallback Python to JavaScript translation for basic cases.
@@ -758,38 +824,38 @@ class CDPFunctionExecutor:
             str: Basic translated JavaScript code.
         """
         import re
-        
-        lines = python_code.strip().split('\n')
+
+        lines = python_code.strip().split("\n")
         js_lines = []
-        
+
         for line in lines:
             js_line = line
-            
+
             replacements = {
                 "True": "true",
-                "False": "false", 
+                "False": "false",
                 "None": "null",
                 "print(": "console.log(",
                 ".append(": ".push(",
             }
-            
+
             for py_syntax, js_syntax in replacements.items():
                 js_line = js_line.replace(py_syntax, js_syntax)
-            
-            if '=' in js_line and not js_line.strip().startswith('//'):
-                if re.match(r'^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=', js_line):
-                    js_line = re.sub(r'^(\s*)([a-zA-Z_][a-zA-Z0-9_]*\s*=)', r'\1let \2', js_line)
-            
+
+            if "=" in js_line and not js_line.strip().startswith("//"):
+                if re.match(r"^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=", js_line):
+                    js_line = re.sub(r"^(\s*)([a-zA-Z_][a-zA-Z0-9_]*\s*=)", r"\1let \2", js_line)
+
             js_lines.append(js_line)
-        
+
         js_code = ";\n".join(js_lines) + ";"
-        
+
         last_line = lines[-1].strip() if lines else ""
-        if last_line and '=' not in last_line and not last_line.endswith(':'):
-            js_code = js_code.rsplit(';', 2)[0] + f"; return {last_line};"
-        
+        if last_line and "=" not in last_line and not last_line.endswith(":"):
+            js_code = js_code.rsplit(";", 2)[0] + f"; return {last_line};"
+
         wrapped_code = f"(function() {{ {js_code} }})()"
-        
+
         return wrapped_code
 
     async def call_python_from_js(self, binding_name: str, args: List[Any]) -> Dict[str, Any]:
@@ -811,20 +877,10 @@ class CDPFunctionExecutor:
                 result = await python_function(*args)
             else:
                 result = python_function(*args)
-            return {
-                "success": True,
-                "result": result,
-                "binding_name": binding_name,
-                "args": args
-            }
+            return {"success": True, "result": result, "binding_name": binding_name, "args": args}
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "call_python_from_js", e)
-            return {
-                "success": False,
-                "error": str(e),
-                "binding_name": binding_name,
-                "args": args
-            }
+            return {"success": False, "error": str(e), "binding_name": binding_name, "args": args}
 
     async def get_function_executor_info(self, instance_id: str = None) -> Dict[str, Any]:
         """
@@ -838,13 +894,17 @@ class CDPFunctionExecutor:
         """
         return {
             "python_bindings": list(self._python_bindings.keys()),
-            "persistent_functions": self._persistent_functions.get(instance_id, {}) if instance_id else self._persistent_functions,
+            "persistent_functions": (
+                self._persistent_functions.get(instance_id, {})
+                if instance_id
+                else self._persistent_functions
+            ),
             "available_commands": await self.list_cdp_commands(),
             "executor_version": "1.0.0",
             "capabilities": [
                 "direct_cdp_execution",
                 "function_discovery",
                 "dynamic_script_injection",
-                "python_js_bridge"
-            ]
+                "python_js_bridge",
+            ],
         }

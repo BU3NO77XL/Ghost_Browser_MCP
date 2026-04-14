@@ -30,25 +30,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import server as _srv
 
-spawn_browser         = _srv.spawn_browser
-close_instance        = _srv.close_instance
-navigate              = _srv.navigate
-execute_script        = _srv.execute_script
-query_elements        = _srv.query_elements
-get_cookies           = _srv.get_cookies
+spawn_browser = _srv.spawn_browser
+close_instance = _srv.close_instance
+navigate = _srv.navigate
+execute_script = _srv.execute_script
+query_elements = _srv.query_elements
+get_cookies = _srv.get_cookies
 list_network_requests = _srv.list_network_requests
-get_request_details   = _srv.get_request_details
-get_response_details  = _srv.get_response_details
-get_response_content  = _srv.get_response_content
-modify_headers        = _srv.modify_headers
-get_active_tab        = _srv.get_active_tab
-go_forward            = _srv.go_forward
-take_screenshot       = _srv.take_screenshot
+get_request_details = _srv.get_request_details
+get_response_details = _srv.get_response_details
+get_response_content = _srv.get_response_content
+modify_headers = _srv.modify_headers
+get_active_tab = _srv.get_active_tab
+go_forward = _srv.go_forward
+take_screenshot = _srv.take_screenshot
 
 
 async def _spawn() -> str:
     r = await spawn_browser(headless=False, viewport_width=1280, viewport_height=720)
     return r["instance_id"]
+
 
 async def _close(iid: str):
     try:
@@ -93,7 +94,9 @@ class TestSelectOption:
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/forms/post", inject_cookies=False)
         # Inject a select element to test against
-        await execute_script(iid, """
+        await execute_script(
+            iid,
+            """
             var s = document.createElement('select');
             s.id = 'test_select';
             ['opt1','opt2','opt3'].forEach(function(v){
@@ -102,7 +105,8 @@ class TestSelectOption:
                 s.appendChild(o);
             });
             document.body.appendChild(s);
-        """)
+        """,
+        )
         result = await _srv.select_option(iid, "#test_select", index=1)
         assert isinstance(result, bool)
         await _close(iid)
@@ -230,10 +234,13 @@ class TestModifyHeaders:
     async def test_modify_headers_multiple(self):
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
-        result = await modify_headers(iid, {
-            "X-Header-One": "value1",
-            "X-Header-Two": "value2",
-        })
+        result = await modify_headers(
+            iid,
+            {
+                "X-Header-One": "value1",
+                "X-Header-Two": "value2",
+            },
+        )
         assert result is True
         await _close(iid)
 
@@ -467,6 +474,7 @@ class TestScreenshotVariants:
         assert result is not None
         if isinstance(result, str):
             import base64
+
             try:
                 data = base64.b64decode(result)
                 assert len(data) > 100
@@ -487,9 +495,7 @@ class TestWaitForTargetHost:
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
         tab = await _srv.browser_manager.get_tab(iid)
-        result = await _srv._wait_for_target_host(
-            tab, "https://httpbin.org/json", max_wait_ms=3000
-        )
+        result = await _srv._wait_for_target_host(tab, "https://httpbin.org/json", max_wait_ms=3000)
         assert result["matched"] is True
         assert result["target_host"] == "httpbin.org"
         await _close(iid)

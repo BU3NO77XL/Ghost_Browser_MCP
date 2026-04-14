@@ -18,14 +18,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import server as _srv
 
-spawn_browser  = _srv.spawn_browser
+spawn_browser = _srv.spawn_browser
 close_instance = _srv.close_instance
-navigate       = _srv.navigate
+navigate = _srv.navigate
 
 
 async def _spawn() -> str:
     r = await spawn_browser(headless=False, viewport_width=1280, viewport_height=720)
     return r["instance_id"]
+
 
 async def _close(iid: str):
     try:
@@ -42,6 +43,7 @@ class TestCDPElementCloner:
     @pytest.mark.asyncio
     async def test_extract_complete_element_body(self):
         from cdp_element_cloner import CDPElementCloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -57,6 +59,7 @@ class TestCDPElementCloner:
     @pytest.mark.asyncio
     async def test_extract_complete_element_nonexistent(self):
         from cdp_element_cloner import CDPElementCloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -72,6 +75,7 @@ class TestCDPElementCloner:
     @pytest.mark.asyncio
     async def test_extract_element_has_html(self):
         from cdp_element_cloner import CDPElementCloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -93,6 +97,7 @@ class TestElementCloner:
     @pytest.mark.asyncio
     async def test_extract_element_styles(self):
         from element_cloner import element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -107,6 +112,7 @@ class TestElementCloner:
     @pytest.mark.asyncio
     async def test_extract_element_structure(self):
         from element_cloner import element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -120,6 +126,7 @@ class TestElementCloner:
     @pytest.mark.asyncio
     async def test_extract_element_events(self):
         from element_cloner import element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -132,6 +139,7 @@ class TestElementCloner:
     @pytest.mark.asyncio
     async def test_extract_element_animations(self):
         from element_cloner import element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -144,6 +152,7 @@ class TestElementCloner:
     @pytest.mark.asyncio
     async def test_extract_element_assets(self):
         from element_cloner import element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -156,6 +165,7 @@ class TestElementCloner:
     @pytest.mark.asyncio
     async def test_extract_element_styles_cdp(self):
         from element_cloner import element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -168,6 +178,7 @@ class TestElementCloner:
     @pytest.mark.asyncio
     async def test_clone_element_complete(self):
         from element_cloner import element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -188,6 +199,7 @@ class TestProgressiveElementClonerBrowser:
     @pytest.mark.asyncio
     async def test_clone_element_progressive_returns_element_id(self):
         from progressive_element_cloner import progressive_element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -206,6 +218,7 @@ class TestProgressiveElementClonerBrowser:
     @pytest.mark.asyncio
     async def test_expand_styles_after_clone(self):
         from progressive_element_cloner import progressive_element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -223,6 +236,7 @@ class TestProgressiveElementClonerBrowser:
     @pytest.mark.asyncio
     async def test_expand_children_after_clone(self):
         from progressive_element_cloner import progressive_element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -240,6 +254,7 @@ class TestProgressiveElementClonerBrowser:
     async def test_list_stored_elements_after_clone(self):
         from progressive_element_cloner import progressive_element_cloner
         from persistent_storage import persistent_storage
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -263,6 +278,7 @@ class TestProgressiveElementClonerBrowser:
     @pytest.mark.asyncio
     async def test_clear_stored_element(self):
         from progressive_element_cloner import progressive_element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -288,6 +304,7 @@ class TestComprehensiveElementCloner:
     @pytest.mark.asyncio
     async def test_extract_complete_element(self):
         from comprehensive_element_cloner import comprehensive_element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -301,6 +318,7 @@ class TestComprehensiveElementCloner:
     @pytest.mark.asyncio
     async def test_extract_complete_element_to_file(self, tmp_path):
         from comprehensive_element_cloner import comprehensive_element_cloner
+
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)

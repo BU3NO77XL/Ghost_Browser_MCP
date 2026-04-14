@@ -57,12 +57,15 @@ class TestStoragePersistence:
         storage_file = tmp_path / "test_instances.json"
         test_storage = InMemoryStorage(storage_file=str(storage_file))
 
-        test_storage.store_instance("test-id-123", {
-            "state": "ready",
-            "created_at": "2026-01-01T00:00:00",
-            "current_url": "https://example.com",
-            "title": "Test"
-        })
+        test_storage.store_instance(
+            "test-id-123",
+            {
+                "state": "ready",
+                "created_at": "2026-01-01T00:00:00",
+                "current_url": "https://example.com",
+                "title": "Test",
+            },
+        )
 
         assert storage_file.exists(), "Storage file should be created on disk"
         data = json.loads(storage_file.read_text())
@@ -78,12 +81,15 @@ class TestStoragePersistence:
 
         # Write data with first storage instance
         storage1 = InMemoryStorage(storage_file=str(storage_file))
-        storage1.store_instance("persisted-id", {
-            "state": "ready",
-            "created_at": "2026-01-01T00:00:00",
-            "current_url": "https://example.com",
-            "title": "Persisted"
-        })
+        storage1.store_instance(
+            "persisted-id",
+            {
+                "state": "ready",
+                "created_at": "2026-01-01T00:00:00",
+                "current_url": "https://example.com",
+                "title": "Persisted",
+            },
+        )
 
         # Create second storage instance pointing to same file
         # By design, it clears stale instances from previous runs
@@ -91,7 +97,9 @@ class TestStoragePersistence:
         loaded = storage2.get_instance("persisted-id")
 
         # Stale instances are cleared on startup — this is the correct behavior
-        assert loaded is None, "Stale instances should be cleared on startup to prevent ghost instances"
+        assert (
+            loaded is None
+        ), "Stale instances should be cleared on startup to prevent ghost instances"
 
     @pytest.mark.asyncio
     async def test_no_stale_instances_after_close(self, browser_manager):
@@ -119,12 +127,15 @@ class TestStaleInstanceDetection:
         """list_instances should distinguish active vs stored-only instances."""
         # Manually inject a stale instance into storage
         stale_id = "stale-instance-that-never-existed"
-        persistent_storage.store_instance(stale_id, {
-            "state": "ready",
-            "created_at": "2026-01-01T00:00:00",
-            "current_url": "https://example.com",
-            "title": "Stale"
-        })
+        persistent_storage.store_instance(
+            stale_id,
+            {
+                "state": "ready",
+                "created_at": "2026-01-01T00:00:00",
+                "current_url": "https://example.com",
+                "title": "Stale",
+            },
+        )
 
         # Spawn a real active instance
         options = BrowserOptions(headless=False, viewport_width=1280, viewport_height=720)
@@ -149,12 +160,15 @@ class TestStaleInstanceDetection:
     async def test_stale_instance_tab_returns_none(self, browser_manager):
         """get_tab for a stale/stored-only instance should return None."""
         stale_id = "stale-no-tab-instance"
-        persistent_storage.store_instance(stale_id, {
-            "state": "ready",
-            "created_at": "2026-01-01T00:00:00",
-            "current_url": "https://example.com",
-            "title": "Stale"
-        })
+        persistent_storage.store_instance(
+            stale_id,
+            {
+                "state": "ready",
+                "created_at": "2026-01-01T00:00:00",
+                "current_url": "https://example.com",
+                "title": "Stale",
+            },
+        )
 
         tab = await browser_manager.get_tab(stale_id)
         assert tab is None, "Stale instance should have no tab (not recoverable)"
@@ -166,12 +180,15 @@ class TestStaleInstanceDetection:
     async def test_stale_instance_health_check_fails(self, browser_manager):
         """Health check on stale instance should return healthy=False."""
         stale_id = "stale-health-check-instance"
-        persistent_storage.store_instance(stale_id, {
-            "state": "ready",
-            "created_at": "2026-01-01T00:00:00",
-            "current_url": "https://example.com",
-            "title": "Stale"
-        })
+        persistent_storage.store_instance(
+            stale_id,
+            {
+                "state": "ready",
+                "created_at": "2026-01-01T00:00:00",
+                "current_url": "https://example.com",
+                "title": "Stale",
+            },
+        )
 
         health = await browser_manager.check_instance_health(stale_id)
         assert health["healthy"] is False
@@ -188,7 +205,9 @@ class TestStaleInstanceDetection:
         all_stored = persistent_storage.list_instances()
         instances = all_stored.get("instances", {})
         stale_count = len(instances)
-        print(f"\n[DIAGNOSTIC] Storage has {stale_count} persisted instances (should be 0 on fresh start)")
+        print(
+            f"\n[DIAGNOSTIC] Storage has {stale_count} persisted instances (should be 0 on fresh start)"
+        )
         # After our fix, storage is cleared on startup — only instances created
         # in the current run should be present
         assert isinstance(stale_count, int)
@@ -202,8 +221,12 @@ class TestStorageCleanup:
         storage_file = tmp_path / "clear_test.json"
         storage = InMemoryStorage(storage_file=str(storage_file))
 
-        storage.store_instance("id-1", {"state": "ready", "created_at": "", "current_url": "", "title": ""})
-        storage.store_instance("id-2", {"state": "ready", "created_at": "", "current_url": "", "title": ""})
+        storage.store_instance(
+            "id-1", {"state": "ready", "created_at": "", "current_url": "", "title": ""}
+        )
+        storage.store_instance(
+            "id-2", {"state": "ready", "created_at": "", "current_url": "", "title": ""}
+        )
 
         storage.clear_all()
 

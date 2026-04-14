@@ -24,7 +24,9 @@ class NetworkInterceptor:
         self._instance_requests: Dict[str, List[str]] = {}
         self._lock = asyncio.Lock()
 
-    async def setup_interception(self, tab: Tab, instance_id: str, block_resources: List[str] = None):
+    async def setup_interception(
+        self, tab: Tab, instance_id: str, block_resources: List[str] = None
+    ):
         """
         Set up network interception for a tab.
 
@@ -34,34 +36,52 @@ class NetworkInterceptor:
         """
         try:
             await tab.send(uc.cdp.network.enable())
-            
+
             if block_resources:
                 # Convert resource types to URL patterns for blocking
                 url_patterns = []
                 for resource_type in block_resources:
                     # Map resource types to URL patterns that typically identify these resources
                     resource_patterns = {
-                        'image': ['*.jpg', '*.jpeg', '*.png', '*.gif', '*.webp', '*.svg', '*.bmp', '*.ico'],
-                        'stylesheet': ['*.css'],
-                        'font': ['*.woff', '*.woff2', '*.ttf', '*.otf', '*.eot'],
-                        'script': ['*.js', '*.mjs'],
-                        'media': ['*.mp4', '*.mp3', '*.wav', '*.avi', '*.webm']
+                        "image": [
+                            "*.jpg",
+                            "*.jpeg",
+                            "*.png",
+                            "*.gif",
+                            "*.webp",
+                            "*.svg",
+                            "*.bmp",
+                            "*.ico",
+                        ],
+                        "stylesheet": ["*.css"],
+                        "font": ["*.woff", "*.woff2", "*.ttf", "*.otf", "*.eot"],
+                        "script": ["*.js", "*.mjs"],
+                        "media": ["*.mp4", "*.mp3", "*.wav", "*.avi", "*.webm"],
                     }
-                    
+
                     if resource_type.lower() in resource_patterns:
                         url_patterns.extend(resource_patterns[resource_type.lower()])
-                        debug_logger.log_info("network_interceptor", "setup_interception",
-                                              f"Added URL patterns for {resource_type}")
+                        debug_logger.log_info(
+                            "network_interceptor",
+                            "setup_interception",
+                            f"Added URL patterns for {resource_type}",
+                        )
                     else:
                         url_patterns.append(resource_type)
-                        debug_logger.log_info("network_interceptor", "setup_interception",
-                                              f"Added custom URL pattern: {resource_type}")
-                
+                        debug_logger.log_info(
+                            "network_interceptor",
+                            "setup_interception",
+                            f"Added custom URL pattern: {resource_type}",
+                        )
+
                 if url_patterns:
                     await tab.send(uc.cdp.network.set_blocked_ur_ls(urls=url_patterns))
-                    debug_logger.log_info("network_interceptor", "setup_interception",
-                                          f"Blocked {len(url_patterns)} URL patterns")
-            
+                    debug_logger.log_info(
+                        "network_interceptor",
+                        "setup_interception",
+                        f"Blocked {len(url_patterns)} URL patterns",
+                    )
+
             tab.add_handler(
                 uc.cdp.network.RequestWillBeSent,
                 lambda event, _=None: asyncio.create_task(self._on_request(event, instance_id)),
@@ -70,7 +90,7 @@ class NetworkInterceptor:
                 uc.cdp.network.ResponseReceived,
                 lambda event, _=None: asyncio.create_task(self._on_response(event, instance_id)),
             )
-            
+
             async with self._lock:
                 if instance_id not in self._instance_requests:
                     self._instance_requests[instance_id] = []
@@ -138,8 +158,9 @@ class NetworkInterceptor:
         except Exception:
             pass
 
-
-    async def list_requests(self, instance_id: str, filter_type: Optional[str] = None) -> List[NetworkRequest]:
+    async def list_requests(
+        self, instance_id: str, filter_type: Optional[str] = None
+    ) -> List[NetworkRequest]:
         """
         List all requests for an instance.
 
@@ -154,7 +175,10 @@ class NetworkInterceptor:
                 if req_id in self._requests:
                     request = self._requests[req_id]
                     if filter_type:
-                        if request.resource_type and filter_type.lower() in request.resource_type.lower():
+                        if (
+                            request.resource_type
+                            and filter_type.lower() in request.resource_type.lower()
+                        ):
                             requests.append(request)
                     else:
                         requests.append(request)
@@ -282,7 +306,7 @@ class NetworkInterceptor:
                             }
                         })()
                     """),
-                    timeout=3.0
+                    timeout=3.0,
                 )
             except Exception:
                 pass
@@ -290,12 +314,14 @@ class NetworkInterceptor:
             # Also clear via CDP storage (best effort, don't let it corrupt WebSocket)
             try:
                 await asyncio.wait_for(
-                    tab.send(uc.cdp.storage.clear_cookies(browser_context_id=None)),
-                    timeout=4.0
+                    tab.send(uc.cdp.storage.clear_cookies(browser_context_id=None)), timeout=4.0
                 )
             except Exception as e:
-                debug_logger.log_warning("network_interceptor", "clear_cookies",
-                                         f"CDP clear failed (best effort): {type(e).__name__}")
+                debug_logger.log_warning(
+                    "network_interceptor",
+                    "clear_cookies",
+                    f"CDP clear failed (best effort): {type(e).__name__}",
+                )
 
             return True
         except Exception as e:
@@ -319,10 +345,7 @@ class NetworkInterceptor:
             elif isinstance(expires, str) and expires.strip().isdigit():
                 cookie["expires"] = uc.cdp.network.TimeSinceEpoch(float(expires.strip()))
 
-            await asyncio.wait_for(
-                tab.send(uc.cdp.network.set_cookie(**cookie)),
-                timeout=10.0
-            )
+            await asyncio.wait_for(tab.send(uc.cdp.network.set_cookie(**cookie)), timeout=10.0)
             return True
         except asyncio.TimeoutError:
             raise Exception("Timeout ao definir cookie - a página pode estar travada")
@@ -342,51 +365,60 @@ class NetworkInterceptor:
             # Use JavaScript first — it's faster and doesn't risk corrupting
             # the nodriver WebSocket state via asyncio.wait_for cancellation.
             try:
-                cookie_string = await asyncio.wait_for(
-                    tab.evaluate("document.cookie"),
-                    timeout=3.0
-                )
+                cookie_string = await asyncio.wait_for(tab.evaluate("document.cookie"), timeout=3.0)
                 hostname = ""
                 try:
                     hostname = await asyncio.wait_for(
-                        tab.evaluate("window.location.hostname"),
-                        timeout=2.0
+                        tab.evaluate("window.location.hostname"), timeout=2.0
                     )
                 except Exception:
                     pass
 
                 if cookie_string and isinstance(cookie_string, str):
-                    for cookie_pair in cookie_string.split('; '):
-                        if '=' in cookie_pair:
-                            name, value = cookie_pair.split('=', 1)
-                            cookies.append({
-                                'name': name.strip(),
-                                'value': value.strip(),
-                                'domain': hostname,
-                                'path': '/'
-                            })
+                    for cookie_pair in cookie_string.split("; "):
+                        if "=" in cookie_pair:
+                            name, value = cookie_pair.split("=", 1)
+                            cookies.append(
+                                {
+                                    "name": name.strip(),
+                                    "value": value.strip(),
+                                    "domain": hostname,
+                                    "path": "/",
+                                }
+                            )
 
                 # If JS returned cookies, great. If empty, try CDP as supplement.
                 if not cookies:
                     try:
                         result = await asyncio.wait_for(
                             tab.send(uc.cdp.storage.get_cookies(browser_context_id=None)),
-                            timeout=4.0
+                            timeout=4.0,
                         )
-                        cdp_cookies = result.get("cookies", []) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+                        cdp_cookies = (
+                            result.get("cookies", [])
+                            if isinstance(result, dict)
+                            else (result if isinstance(result, list) else [])
+                        )
                         if isinstance(cdp_cookies, list) and cdp_cookies:
                             cookies = cdp_cookies
                     except Exception as cdp_err:
-                        debug_logger.log_warning("network_interceptor", "get_cookies",
-                                                 f"CDP fallback also failed: {type(cdp_err).__name__}")
+                        debug_logger.log_warning(
+                            "network_interceptor",
+                            "get_cookies",
+                            f"CDP fallback also failed: {type(cdp_err).__name__}",
+                        )
 
             except Exception as js_err:
-                debug_logger.log_warning("network_interceptor", "get_cookies",
-                                         f"JS cookie read failed: {type(js_err).__name__}: {js_err}")
+                debug_logger.log_warning(
+                    "network_interceptor",
+                    "get_cookies",
+                    f"JS cookie read failed: {type(js_err).__name__}: {js_err}",
+                )
 
             # Filter by URLs if specified
             if urls and isinstance(cookies, list):
                 from urllib.parse import urlparse
+
                 filtered = []
                 for cookie in cookies:
                     cookie_domain = cookie.get("domain", "").lstrip(".")
@@ -432,6 +464,7 @@ class NetworkInterceptor:
             return True
         except Exception as e:
             raise Exception(f"Failed to emulate network conditions: {str(e)}")
+
     async def clear_instance_data(self, instance_id: str):
         """
         Clear all network data for an instance.

@@ -27,27 +27,28 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # Import the actual MCP tool functions and the shared singletons
 import server as _server
 
-spawn_browser      = _server.spawn_browser
-list_instances     = _server.list_instances
-close_instance     = _server.close_instance
+spawn_browser = _server.spawn_browser
+list_instances = _server.list_instances
+close_instance = _server.close_instance
 check_instance_health = _server.check_instance_health
-navigate           = _server.navigate
+navigate = _server.navigate
 confirm_manual_login = _server.confirm_manual_login
 check_login_status = _server.check_login_status
 get_instance_state = _server.get_instance_state
-execute_script     = _server.execute_script
-get_page_content   = _server.get_page_content
-query_elements     = _server.query_elements
-get_cookies        = _server.get_cookies
-set_cookie         = _server.set_cookie
-clear_cookies      = _server.clear_cookies
-go_back            = _server.go_back
-reload_page        = _server.reload_page
+execute_script = _server.execute_script
+get_page_content = _server.get_page_content
+query_elements = _server.query_elements
+get_cookies = _server.get_cookies
+set_cookie = _server.set_cookie
+clear_cookies = _server.clear_cookies
+go_back = _server.go_back
+reload_page = _server.reload_page
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 async def _spawn() -> str:
     """Spawn a browser and return instance_id."""
@@ -65,6 +66,7 @@ async def _close(instance_id: str):
 # ---------------------------------------------------------------------------
 # Browser lifecycle
 # ---------------------------------------------------------------------------
+
 
 class TestMCPBrowserLifecycle:
 
@@ -113,6 +115,7 @@ class TestMCPBrowserLifecycle:
 # ---------------------------------------------------------------------------
 # Navigation
 # ---------------------------------------------------------------------------
+
 
 class TestMCPNavigation:
 
@@ -176,6 +179,7 @@ class TestMCPNavigation:
 # get_instance_state
 # ---------------------------------------------------------------------------
 
+
 class TestMCPInstanceState:
 
     @pytest.mark.asyncio
@@ -199,6 +203,7 @@ class TestMCPInstanceState:
 # ---------------------------------------------------------------------------
 # JavaScript execution
 # ---------------------------------------------------------------------------
+
 
 class TestMCPExecuteScript:
 
@@ -234,6 +239,7 @@ class TestMCPExecuteScript:
 # Page content
 # ---------------------------------------------------------------------------
 
+
 class TestMCPPageContent:
 
     @pytest.mark.asyncio
@@ -249,6 +255,7 @@ class TestMCPPageContent:
 # ---------------------------------------------------------------------------
 # DOM interaction
 # ---------------------------------------------------------------------------
+
 
 class TestMCPDOMInteraction:
 
@@ -284,6 +291,7 @@ class TestMCPDOMInteraction:
 # Cookies
 # ---------------------------------------------------------------------------
 
+
 class TestMCPCookies:
 
     @pytest.mark.asyncio
@@ -292,11 +300,7 @@ class TestMCPCookies:
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
         await set_cookie(
-            iid,
-            name="mcp_test_cookie",
-            value="mcp_test_value",
-            domain="httpbin.org",
-            path="/"
+            iid, name="mcp_test_cookie", value="mcp_test_value", domain="httpbin.org", path="/"
         )
 
         cookies = await get_cookies(iid)
@@ -324,6 +328,7 @@ class TestMCPCookies:
 # ---------------------------------------------------------------------------
 # Login flow — end-to-end via MCP tools
 # ---------------------------------------------------------------------------
+
 
 class TestMCPLoginFlow:
 
@@ -367,9 +372,7 @@ class TestMCPLoginFlow:
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
 
         tab = await _server.browser_manager.get_tab(iid)
-        await manual_login_handler.register_pending_login(
-            iid, tab, "https://httpbin.org/html"
-        )
+        await manual_login_handler.register_pending_login(iid, tab, "https://httpbin.org/html")
 
         # Step 2: Verify pending state
         status = await check_login_status(iid)
@@ -412,9 +415,7 @@ class TestMCPLoginFlow:
         tab = await _server.browser_manager.get_tab(iid)
 
         # Register as pending
-        await manual_login_handler.register_pending_login(
-            iid, tab, "https://httpbin.org/html"
-        )
+        await manual_login_handler.register_pending_login(iid, tab, "https://httpbin.org/html")
 
         # Do NOT set watcher detected — simulate user still on login page
         # confirm_login with skip_login_check=False will check DOM

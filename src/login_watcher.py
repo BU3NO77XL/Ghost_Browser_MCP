@@ -21,12 +21,12 @@ from debug_logger import debug_logger
 
 
 class LoginWatcher:
-    POLL_INTERVAL = 1.5    # seconds between checks
-    MAX_WAIT      = 600.0  # give up after 10 minutes
+    POLL_INTERVAL = 1.5  # seconds between checks
+    MAX_WAIT = 600.0  # give up after 10 minutes
 
     def __init__(self):
-        self._tasks:    Dict[str, asyncio.Task] = {}
-        self._detected: Set[str]               = set()
+        self._tasks: Dict[str, asyncio.Task] = {}
+        self._detected: Set[str] = set()
         self._lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
@@ -45,8 +45,9 @@ class LoginWatcher:
                 name=f"login_watcher_{instance_id[:8]}",
             )
             self._tasks[instance_id] = task
-        debug_logger.log_info("login_watcher", "start_watching",
-                              f"Watcher started for {instance_id}")
+        debug_logger.log_info(
+            "login_watcher", "start_watching", f"Watcher started for {instance_id}"
+        )
 
     async def stop_watching(self, instance_id: str) -> None:
         """Cancel watcher task and clean up detected flag."""
@@ -103,8 +104,9 @@ class LoginWatcher:
                 try:
                     left = await self._left_login_page(tab, LOGIN_URL_INDICATORS)
                 except Exception as e:
-                    debug_logger.log_warning("login_watcher", "_watch_loop",
-                                             f"{instance_id}: {type(e).__name__}: {e}")
+                    debug_logger.log_warning(
+                        "login_watcher", "_watch_loop", f"{instance_id}: {type(e).__name__}: {e}"
+                    )
                     continue
 
                 if not left:
@@ -113,8 +115,9 @@ class LoginWatcher:
                 # User left the login page — signal detection
                 async with self._lock:
                     self._detected.add(instance_id)
-                debug_logger.log_info("login_watcher", "_watch_loop",
-                                      f"Login detected for {instance_id}")
+                debug_logger.log_info(
+                    "login_watcher", "_watch_loop", f"Login detected for {instance_id}"
+                )
                 return
 
             # Timeout reached — set detected anyway so confirm_manual_login
@@ -122,11 +125,15 @@ class LoginWatcher:
             async with self._lock:
                 if instance_id not in self._detected:
                     self._detected.add(instance_id)
-            debug_logger.log_warning("login_watcher", "_watch_loop",
-                                     f"Watcher timed out for {instance_id} — setting detected flag as fallback")
+            debug_logger.log_warning(
+                "login_watcher",
+                "_watch_loop",
+                f"Watcher timed out for {instance_id} — setting detected flag as fallback",
+            )
         except asyncio.CancelledError:
-            debug_logger.log_info("login_watcher", "_watch_loop",
-                                  f"Watcher cancelled for {instance_id}")
+            debug_logger.log_info(
+                "login_watcher", "_watch_loop", f"Watcher cancelled for {instance_id}"
+            )
         finally:
             # Clean up task reference
             async with self._lock:
@@ -136,8 +143,7 @@ class LoginWatcher:
     async def _left_login_page(tab, login_url_indicators) -> bool:
         """Returns True when the browser is no longer on a login page."""
         try:
-            url = await asyncio.wait_for(
-                tab.evaluate("window.location.href"), timeout=2.0)
+            url = await asyncio.wait_for(tab.evaluate("window.location.href"), timeout=2.0)
         except Exception:
             return False
 
@@ -146,8 +152,8 @@ class LoginWatcher:
 
         try:
             has_pw = await asyncio.wait_for(
-                tab.evaluate("!!document.querySelector('input[type=\"password\"]')"),
-                timeout=2.0)
+                tab.evaluate("!!document.querySelector('input[type=\"password\"]')"), timeout=2.0
+            )
             if bool(has_pw):
                 return False
         except Exception:

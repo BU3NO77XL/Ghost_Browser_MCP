@@ -140,18 +140,21 @@ class TestDeadInstanceBehavior:
     async def test_stored_only_instance_cannot_be_used(self, browser_manager):
         """
         CRITICAL: A stored-but-dead instance cannot be recovered.
-        
+
         This documents the fundamental limitation: there is NO reconnect mechanism.
         If an instance is in storage but not in memory, it's dead and must be recreated.
         """
         # Inject a fake "stored" instance
         fake_id = "fake-stored-instance-xyz"
-        persistent_storage.store_instance(fake_id, {
-            "state": "ready",
-            "created_at": "2026-01-01T00:00:00",
-            "current_url": "https://instagram.com",
-            "title": "Instagram"
-        })
+        persistent_storage.store_instance(
+            fake_id,
+            {
+                "state": "ready",
+                "created_at": "2026-01-01T00:00:00",
+                "current_url": "https://instagram.com",
+                "title": "Instagram",
+            },
+        )
 
         # Verify it's in storage but not in memory
         tab = await browser_manager.get_tab(fake_id)
@@ -188,7 +191,7 @@ class TestDeadInstanceBehavior:
 class TestNoRecoveryMechanism:
     """
     Document and test the absence of a reconnect/recovery mechanism.
-    
+
     This is important for the AI to understand: there is no way to
     "reconnect" to an existing browser session. The only recovery is
     spawn_browser() to create a new instance.
@@ -200,16 +203,18 @@ class TestNoRecoveryMechanism:
         Verify there is no reconnect method — this is by design.
         The correct flow is: detect dead → close → spawn new.
         """
-        assert not hasattr(browser_manager, 'reconnect'), \
-            "No reconnect method should exist — use spawn_browser instead"
-        assert not hasattr(browser_manager, 'recover_instance'), \
-            "No recover_instance method should exist"
+        assert not hasattr(
+            browser_manager, "reconnect"
+        ), "No reconnect method should exist — use spawn_browser instead"
+        assert not hasattr(
+            browser_manager, "recover_instance"
+        ), "No recover_instance method should exist"
 
     @pytest.mark.asyncio
     async def test_health_check_guides_recovery_decision(self, browser_manager):
         """
         Health check should provide enough info to decide: reuse or recreate.
-        
+
         healthy=True + can_recover=True → reuse the instance
         healthy=False + can_recover=False → close and spawn new
         """

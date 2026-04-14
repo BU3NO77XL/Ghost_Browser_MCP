@@ -6,6 +6,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+
 class InMemoryStorage:
     """Thread-safe storage for browser instance data with disk persistence."""
 
@@ -78,17 +79,17 @@ class InMemoryStorage:
         data: Dict[str, Any] - The data associated with the browser instance.
         """
         with self._lock:
-            if 'instances' not in self._data:
-                self._data['instances'] = {}
+            if "instances" not in self._data:
+                self._data["instances"] = {}
             serializable_data = {
-                'instance_id': instance_id,
-                'state': data.get('state', 'unknown'),
-                'created_at': data.get('created_at', ''),
-                'current_url': data.get('current_url', ''),
-                'title': data.get('title', ''),
-                'tabs': []
+                "instance_id": instance_id,
+                "state": data.get("state", "unknown"),
+                "created_at": data.get("created_at", ""),
+                "current_url": data.get("current_url", ""),
+                "title": data.get("title", ""),
+                "tabs": [],
             }
-            self._data['instances'][instance_id] = serializable_data
+            self._data["instances"][instance_id] = serializable_data
             self._persist_to_disk()
 
     def remove_instance(self, instance_id: str):
@@ -98,8 +99,8 @@ class InMemoryStorage:
         instance_id: str - The unique identifier for the browser instance to remove.
         """
         with self._lock:
-            if 'instances' in self._data and instance_id in self._data['instances']:
-                del self._data['instances'][instance_id]
+            if "instances" in self._data and instance_id in self._data["instances"]:
+                del self._data["instances"][instance_id]
                 self._persist_to_disk()
 
     def get_instance(self, instance_id: str) -> Optional[Dict[str, Any]]:
@@ -110,7 +111,7 @@ class InMemoryStorage:
         Returns: Optional[Dict[str, Any]] - The data for the browser instance, or None if not found.
         """
         with self._lock:
-            instance = self._data.get('instances', {}).get(instance_id)
+            instance = self._data.get("instances", {}).get(instance_id)
             return deepcopy(instance) if instance is not None else None
 
     def list_instances(self) -> Dict[str, Any]:
@@ -154,5 +155,6 @@ class InMemoryStorage:
         with self._lock:
             self._data[key] = value
             self._persist_to_disk()
+
 
 persistent_storage = InMemoryStorage()

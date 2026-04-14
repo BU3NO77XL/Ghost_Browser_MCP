@@ -44,18 +44,23 @@ from manual_login_handler import manual_login_handler
 
 DISABLED_SECTIONS = set()
 
+
 def is_section_enabled(section: str) -> bool:
     """Check if a tool section is enabled."""
     return section not in DISABLED_SECTIONS
 
+
 def section_tool(section: str):
     """Decorator to conditionally register tools based on section status."""
+
     def decorator(func):
         if is_section_enabled(section):
             return mcp.tool(func)
         else:
             return func
+
     return decorator
+
 
 @asynccontextmanager
 async def app_lifespan(server):
@@ -69,19 +74,23 @@ async def app_lifespan(server):
     # Clean up stale instances from previous runs on startup
     try:
         persistent_storage.clear_all()
-        debug_logger.log_info("server", "startup", "Cleared stale instances from persistent storage")
+        debug_logger.log_info(
+            "server", "startup", "Cleared stale instances from persistent storage"
+        )
     except Exception as e:
         debug_logger.log_error("server", "startup", f"Failed to clear storage on startup: {e}")
     try:
         yield
     finally:
-        debug_logger.log_info("server", "shutdown", "Shutting down Browser Automation MCP Server...")
+        debug_logger.log_info(
+            "server", "shutdown", "Shutting down Browser Automation MCP Server..."
+        )
         try:
             await browser_manager.close_all()
             debug_logger.log_info("server", "cleanup", "All browser instances closed")
         except Exception as e:
             debug_logger.log_error("server", "cleanup", e)
-        
+
         try:
             process_cleanup._cleanup_all_tracked()
             debug_logger.log_info("server", "cleanup", "Process cleanup complete")
@@ -97,7 +106,10 @@ async def app_lifespan(server):
                 )
         except Exception as e:
             debug_logger.log_error("server", "storage_cleanup", e)
-        debug_logger.log_info("server", "shutdown", "Browser Automation MCP Server shutdown complete")
+        debug_logger.log_info(
+            "server", "shutdown", "Browser Automation MCP Server shutdown complete"
+        )
+
 
 mcp = FastMCP(
     name="Browser Automation MCP",
@@ -223,10 +235,7 @@ def _domain_matches_host(cookie_domain: str, host: str) -> bool:
     normalized_domain = cookie_domain.lstrip(".").lower()
     normalized_host = host.lower()
 
-    return (
-        normalized_host == normalized_domain
-        or normalized_host.endswith(f".{normalized_domain}")
-    )
+    return normalized_host == normalized_domain or normalized_host.endswith(f".{normalized_domain}")
 
 
 def _hosts_represent_same_site(host_a: str, host_b: str) -> bool:
@@ -310,7 +319,7 @@ def _parse_netscape_cookie_line(line: str) -> Optional[Dict[str, Any]]:
 
     if raw_line.startswith("#HttpOnly_"):
         http_only = True
-        raw_line = raw_line[len("#HttpOnly_"):]
+        raw_line = raw_line[len("#HttpOnly_") :]
     elif raw_line.startswith("#"):
         return None
 
@@ -475,6 +484,7 @@ async def _inject_cookies_from_file(
         "cookies_injected": injected_count,
     }
 
+
 @section_tool("browser-management")
 async def spawn_browser(
     headless: bool = False,
@@ -485,7 +495,7 @@ async def spawn_browser(
     block_resources: List[str] = None,
     extra_headers: Dict[str, str] = None,
     user_data_dir: Optional[str] = None,
-    sandbox: Optional[Any] = None
+    sandbox: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """
     Spawn a new browser instance.
@@ -506,16 +516,16 @@ async def spawn_browser(
     """
     try:
         from platform_utils import is_running_as_root, is_running_in_container
-        
+
         if sandbox is None:
             sandbox = not (is_running_as_root() or is_running_in_container())
         elif isinstance(sandbox, str):
-            sandbox = sandbox.lower() in ('true', '1', 'yes', 'on', 'enabled')
+            sandbox = sandbox.lower() in ("true", "1", "yes", "on", "enabled")
         elif isinstance(sandbox, int):
             sandbox = bool(sandbox)
         elif not isinstance(sandbox, bool):
             sandbox = bool(sandbox)
-        
+
         options = BrowserOptions(
             headless=headless,
             user_agent=user_agent,
@@ -525,22 +535,21 @@ async def spawn_browser(
             block_resources=block_resources or [],
             extra_headers=extra_headers or {},
             user_data_dir=user_data_dir,
-            sandbox=sandbox
+            sandbox=sandbox,
         )
         instance = await browser_manager.spawn_browser(options)
         tab = await browser_manager.get_tab(instance.instance_id)
         if tab:
-            await network_interceptor.setup_interception(
-                tab, instance.instance_id, block_resources
-            )
+            await network_interceptor.setup_interception(tab, instance.instance_id, block_resources)
         return {
             "instance_id": instance.instance_id,
             "state": instance.state,
             "headless": instance.headless,
-            "viewport": instance.viewport
+            "viewport": instance.viewport,
         }
     except Exception as e:
         raise Exception(f"Failed to spawn browser: {str(e)}")
+
 
 @section_tool("browser-management")
 async def list_instances() -> List[Dict[str, Any]]:
@@ -554,24 +563,29 @@ async def list_instances() -> List[Dict[str, Any]]:
     storage_instances = persistent_storage.list_instances()
     result = []
     for inst in memory_instances:
-        result.append({
-            "instance_id": inst.instance_id,
-            "state": inst.state,
-            "current_url": inst.current_url,
-            "title": inst.title,
-            "source": "active"
-        })
+        result.append(
+            {
+                "instance_id": inst.instance_id,
+                "state": inst.state,
+                "current_url": inst.current_url,
+                "title": inst.title,
+                "source": "active",
+            }
+        )
     memory_ids = {inst.instance_id for inst in memory_instances}
     for instance_id, inst_data in storage_instances.get("instances", {}).items():
         if instance_id not in memory_ids:
-            result.append({
-                "instance_id": inst_data["instance_id"],
-                "state": inst_data["state"] + " (stored)",
-                "current_url": inst_data["current_url"],
-                "title": inst_data["title"],
-                "source": "stored"
-            })
+            result.append(
+                {
+                    "instance_id": inst_data["instance_id"],
+                    "state": inst_data["state"] + " (stored)",
+                    "current_url": inst_data["current_url"],
+                    "title": inst_data["title"],
+                    "source": "stored",
+                }
+            )
     return result
+
 
 @section_tool("browser-management")
 async def close_instance(instance_id: str) -> bool:
@@ -589,6 +603,7 @@ async def close_instance(instance_id: str) -> bool:
         await network_interceptor.clear_instance_data(instance_id)
     return success
 
+
 @section_tool("browser-management")
 async def get_instance_state(instance_id: str) -> Optional[Dict[str, Any]]:
     """
@@ -605,11 +620,12 @@ async def get_instance_state(instance_id: str) -> Optional[Dict[str, Any]]:
         return state.model_dump(mode="json")
     return None
 
+
 @section_tool("browser-management")
 async def check_instance_health(instance_id: str) -> Dict[str, Any]:
     """
     Check if browser instance is healthy and WebSocket connection is alive.
-    
+
     Use this when you suspect the browser connection is broken or before
     performing operations that might fail due to connection issues.
 
@@ -617,11 +633,12 @@ async def check_instance_health(instance_id: str) -> Dict[str, Any]:
         instance_id (str): Browser instance ID.
 
     Returns:
-        Dict[str, Any]: Health status with 'healthy' (bool), 'reason' (str), 
+        Dict[str, Any]: Health status with 'healthy' (bool), 'reason' (str),
                        and 'can_recover' (bool). If not healthy and can't recover,
                        you should close and recreate the instance.
     """
     return await browser_manager.check_instance_health(instance_id)
+
 
 @section_tool("browser-management")
 async def navigate(
@@ -669,9 +686,7 @@ async def navigate(
         }
 
         if referrer:
-            await tab.send(uc.cdp.network.set_extra_http_headers(
-                headers={"Referer": referrer}
-            ))
+            await tab.send(uc.cdp.network.set_extra_http_headers(headers={"Referer": referrer}))
 
         # Prefer injecting cookies before the first request so auth redirects
         # see the session on initial load. Keep the old post-load flow as a
@@ -770,6 +785,7 @@ async def navigate(
     except Exception as e:
         raise
 
+
 @section_tool("browser-management")
 async def confirm_manual_login(
     instance_id: str,
@@ -801,11 +817,11 @@ async def confirm_manual_login(
         skip_login_check=watcher_detected,
     )
 
-    if result.get('success'):
+    if result.get("success"):
         # Only stop watcher after successful confirmation
         await login_watcher.stop_watching(instance_id)
-        current_url = result.get('current_url', '')
-        if current_url and current_url != 'unknown':
+        current_url = result.get("current_url", "")
+        if current_url and current_url != "unknown":
             try:
                 title = await asyncio.wait_for(tab.evaluate("document.title"), timeout=3.0)
             except Exception:
@@ -844,12 +860,11 @@ async def check_login_status(
     if not tab:
         raise Exception(f"Instância não encontrada: {instance_id}")
 
-    is_pending  = await manual_login_handler.is_pending_login(instance_id)
+    is_pending = await manual_login_handler.is_pending_login(instance_id)
     is_detected = await login_watcher.is_login_detected(instance_id)
 
     try:
-        current_url = await asyncio.wait_for(
-            tab.evaluate("window.location.href"), timeout=3.0)
+        current_url = await asyncio.wait_for(tab.evaluate("window.location.href"), timeout=3.0)
     except Exception:
         current_url = "unknown"
 
@@ -903,6 +918,7 @@ async def go_back(instance_id: str) -> bool:
     await tab.back()
     return True
 
+
 @section_tool("browser-management")
 async def go_forward(instance_id: str) -> bool:
     """
@@ -922,6 +938,7 @@ async def go_forward(instance_id: str) -> bool:
         raise Exception(f"Instance not found: {instance_id}")
     await tab.forward()
     return True
+
 
 @section_tool("browser-management")
 async def reload_page(instance_id: str, ignore_cache: bool = False) -> bool:
@@ -944,13 +961,14 @@ async def reload_page(instance_id: str, ignore_cache: bool = False) -> bool:
     await tab.reload()
     return True
 
+
 @section_tool("element-interaction")
 async def query_elements(
     instance_id: str,
     selector: str,
     text_filter: Optional[str] = None,
     visible_only: bool = True,
-    limit: Optional[Any] = None
+    limit: Optional[Any] = None,
 ) -> List[Dict[str, Any]]:
     """
     Query DOM elements.
@@ -971,33 +989,39 @@ async def query_elements(
     tab = await browser_manager.get_tab(instance_id)
     if not tab:
         raise Exception(f"Instance not found: {instance_id}")
-    debug_logger.log_info('Server', 'query_elements', f'Received limit parameter: {limit} (type: {type(limit)})')
-    elements = await dom_handler.query_elements(
-        tab, selector, text_filter, visible_only, limit
+    debug_logger.log_info(
+        "Server", "query_elements", f"Received limit parameter: {limit} (type: {type(limit)})"
     )
-    debug_logger.log_info('Server', 'query_elements', f'DOM handler returned {len(elements)} elements')
+    elements = await dom_handler.query_elements(tab, selector, text_filter, visible_only, limit)
+    debug_logger.log_info(
+        "Server", "query_elements", f"DOM handler returned {len(elements)} elements"
+    )
     result = []
     for i, elem in enumerate(elements):
         try:
-            if hasattr(elem, 'model_dump'):
+            if hasattr(elem, "model_dump"):
                 elem_dict = elem.model_dump()
-            elif hasattr(elem, 'dict'):
+            elif hasattr(elem, "dict"):
                 elem_dict = elem.dict()
             else:
                 elem_dict = elem
             result.append(elem_dict)
-            debug_logger.log_info('Server', 'query_elements', f'Converted element {i+1} to dict: {list(elem_dict.keys()) if isinstance(elem_dict, dict) else type(elem_dict).__name__}')
+            debug_logger.log_info(
+                "Server",
+                "query_elements",
+                f"Converted element {i+1} to dict: {list(elem_dict.keys()) if isinstance(elem_dict, dict) else type(elem_dict).__name__}",
+            )
         except Exception as e:
-            debug_logger.log_error('Server', 'query_elements', e, {'element_index': i})
-    debug_logger.log_info('Server', 'query_elements', f'Returning {len(result)} results to MCP client')
+            debug_logger.log_error("Server", "query_elements", e, {"element_index": i})
+    debug_logger.log_info(
+        "Server", "query_elements", f"Returning {len(result)} results to MCP client"
+    )
     return result if result else []
+
 
 @section_tool("element-interaction")
 async def click_element(
-    instance_id: str,
-    selector: str,
-    text_match: Optional[str] = None,
-    timeout: int = 10000
+    instance_id: str, selector: str, text_match: Optional[str] = None, timeout: int = 10000
 ) -> bool:
     """
     Click an element.
@@ -1021,6 +1045,7 @@ async def click_element(
         raise Exception(f"Instance not found: {instance_id}")
     return await dom_handler.click_element(tab, selector, text_match, timeout)
 
+
 @section_tool("element-interaction")
 async def type_text(
     instance_id: str,
@@ -1029,7 +1054,7 @@ async def type_text(
     clear_first: bool = True,
     delay_ms: int = 50,
     parse_newlines: bool = False,
-    shift_enter: bool = False
+    shift_enter: bool = False,
 ) -> bool:
     """
     Type text into an input field.
@@ -1054,15 +1079,13 @@ async def type_text(
     tab = await browser_manager.get_tab(instance_id)
     if not tab:
         raise Exception(f"Instance not found: {instance_id}")
-    return await dom_handler.type_text(tab, selector, text, clear_first, delay_ms, parse_newlines, shift_enter)
+    return await dom_handler.type_text(
+        tab, selector, text, clear_first, delay_ms, parse_newlines, shift_enter
+    )
+
 
 @section_tool("element-interaction")
-async def paste_text(
-    instance_id: str,
-    selector: str,
-    text: str,
-    clear_first: bool = True
-) -> bool:
+async def paste_text(instance_id: str, selector: str, text: str, clear_first: bool = True) -> bool:
     """
     Paste text instantly into an input field.
 
@@ -1083,13 +1106,14 @@ async def paste_text(
         raise Exception(f"Instance not found: {instance_id}")
     return await dom_handler.paste_text(tab, selector, text, clear_first)
 
+
 @section_tool("element-interaction")
 async def select_option(
     instance_id: str,
     selector: str,
     value: Optional[str] = None,
     text: Optional[str] = None,
-    index: Optional[Any] = None
+    index: Optional[Any] = None,
 ) -> bool:
     """
     Select an option from a dropdown.
@@ -1110,21 +1134,19 @@ async def select_option(
     tab = await browser_manager.get_tab(instance_id)
     if not tab:
         raise Exception(f"Instance not found: {instance_id}")
-    
+
     converted_index = None
     if index is not None:
         try:
             converted_index = int(index)
         except (ValueError, TypeError):
             raise Exception(f"Invalid index value: {index}. Must be a number.")
-    
+
     return await dom_handler.select_option(tab, selector, value, text, converted_index)
 
+
 @section_tool("element-interaction")
-async def get_element_state(
-    instance_id: str,
-    selector: str
-) -> Dict[str, Any]:
+async def get_element_state(instance_id: str, selector: str) -> Dict[str, Any]:
     """
     Get complete state of an element.
 
@@ -1143,13 +1165,14 @@ async def get_element_state(
         raise Exception(f"Instance not found: {instance_id}")
     return await dom_handler.get_element_state(tab, selector)
 
+
 @section_tool("element-interaction")
 async def wait_for_element(
     instance_id: str,
     selector: str,
     timeout: int = 30000,
     visible: bool = True,
-    text_content: Optional[str] = None
+    text_content: Optional[str] = None,
 ) -> bool:
     """
     Wait for an element to appear.
@@ -1174,12 +1197,10 @@ async def wait_for_element(
         raise Exception(f"Instance not found: {instance_id}")
     return await dom_handler.wait_for_element(tab, selector, timeout, visible, text_content)
 
+
 @section_tool("element-interaction")
 async def scroll_page(
-    instance_id: str,
-    direction: str = "down",
-    amount: int = 500,
-    smooth: bool = True
+    instance_id: str, direction: str = "down", amount: int = 500, smooth: bool = True
 ) -> bool:
     """
     Scroll the page.
@@ -1203,11 +1224,10 @@ async def scroll_page(
         raise Exception(f"Instance not found: {instance_id}")
     return await dom_handler.scroll_page(tab, direction, amount, smooth)
 
+
 @section_tool("element-interaction")
 async def execute_script(
-    instance_id: str,
-    script: str,
-    args: Optional[List[Any]] = None
+    instance_id: str, script: str, args: Optional[List[Any]] = None
 ) -> Dict[str, Any]:
     """
     Execute JavaScript in page context.
@@ -1228,23 +1248,13 @@ async def execute_script(
         raise Exception(f"Instance not found: {instance_id}")
     try:
         result = await dom_handler.execute_script(tab, script, args)
-        return {
-            "success": True,
-            "result": result,
-            "error": None
-        }
+        return {"success": True, "result": result, "error": None}
     except Exception as e:
-        return {
-            "success": False,
-            "result": None,
-            "error": str(e)
-        }
+        return {"success": False, "result": None, "error": str(e)}
+
 
 @section_tool("element-interaction")
-async def get_page_content(
-    instance_id: str,
-    include_frames: bool = False
-) -> Dict[str, Any]:
+async def get_page_content(instance_id: str, include_frames: bool = False) -> Dict[str, Any]:
     """
     Get page HTML and text content.
 
@@ -1262,19 +1272,15 @@ async def get_page_content(
     if not tab:
         raise Exception(f"Instance not found: {instance_id}")
     content = await dom_handler.get_page_content(tab, include_frames)
-    
+
     return response_handler.handle_response(
-        content, 
-        "page_content", 
-        {"instance_id": instance_id, "include_frames": include_frames}
+        content, "page_content", {"instance_id": instance_id, "include_frames": include_frames}
     )
+
 
 @section_tool("element-interaction")
 async def take_screenshot(
-    instance_id: str,
-    full_page: bool = False,
-    format: str = "png",
-    file_path: Optional[str] = None
+    instance_id: str, full_page: bool = False, format: str = "png", file_path: Optional[str] = None
 ) -> Union[str, Dict[str, Any]]:
     """
     Take a screenshot of the page.
@@ -1293,51 +1299,51 @@ async def take_screenshot(
         return guard
     from PIL import Image
     import io
-    
+
     tab = await browser_manager.get_tab(instance_id)
     if not tab:
         raise Exception(f"Instance not found: {instance_id}")
-    
+
     if file_path:
         save_path = Path(file_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
         await tab.save_screenshot(save_path)
         return f"Screenshot saved. AI agents should use the Read tool to view this image: {str(save_path.absolute())}"
-    
-    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
         tmp_path = Path(tmp_file.name)
-    
+
     try:
         await tab.save_screenshot(tmp_path)
-        
+
         with Image.open(tmp_path) as img:
-            if img.mode in ('RGBA', 'LA', 'P') and format.lower() == 'jpeg':
-                background = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'P':
-                    img = img.convert('RGBA')
-                background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+            if img.mode in ("RGBA", "LA", "P") and format.lower() == "jpeg":
+                background = Image.new("RGB", img.size, (255, 255, 255))
+                if img.mode == "P":
+                    img = img.convert("RGBA")
+                background.paste(img, mask=img.split()[-1] if img.mode in ("RGBA", "LA") else None)
                 img = background
-            
+
             output_buffer = io.BytesIO()
-            
-            if format.lower() == 'jpeg':
-                img.save(output_buffer, format='JPEG', quality=85, optimize=True)
+
+            if format.lower() == "jpeg":
+                img.save(output_buffer, format="JPEG", quality=85, optimize=True)
             else:
-                img.save(output_buffer, format='PNG', optimize=True)
-            
+                img.save(output_buffer, format="PNG", optimize=True)
+
             compressed_bytes = output_buffer.getvalue()
-            
+
             base64_size = len(compressed_bytes) * 1.33
             estimated_tokens = int(base64_size / 4)
-            
+
             if estimated_tokens > 20000:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 screenshot_filename = f"screenshot_{timestamp}_{instance_id[:8]}.{format.lower()}"
                 screenshot_path = response_handler.clone_dir / screenshot_filename
-                
-                with open(screenshot_path, 'wb') as f:
+
+                with open(screenshot_path, "wb") as f:
                     f.write(compressed_bytes)
-                
+
                 file_size_kb = len(compressed_bytes) / 1024
                 return {
                     "file_path": str(screenshot_path),
@@ -1345,11 +1351,11 @@ async def take_screenshot(
                     "file_size_kb": round(file_size_kb, 2),
                     "estimated_tokens": estimated_tokens,
                     "reason": "Screenshot too large, automatically saved to file",
-                    "message": f"Screenshot saved. AI agents should use the Read tool to view this image: {str(screenshot_path)}"
+                    "message": f"Screenshot saved. AI agents should use the Read tool to view this image: {str(screenshot_path)}",
                 }
-            
-            return base64.b64encode(compressed_bytes).decode('utf-8')
-            
+
+            return base64.b64encode(compressed_bytes).decode("utf-8")
+
     finally:
         if tmp_path.exists():
             os.unlink(tmp_path)
@@ -1357,8 +1363,7 @@ async def take_screenshot(
 
 @section_tool("network-debugging")
 async def list_network_requests(
-    instance_id: str,
-    filter_type: Optional[str] = None
+    instance_id: str, filter_type: Optional[str] = None
 ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     List captured network requests.
@@ -1380,18 +1385,16 @@ async def list_network_requests(
             "url": req.url,
             "method": req.method,
             "resource_type": req.resource_type,
-            "timestamp": req.timestamp.isoformat()
+            "timestamp": req.timestamp.isoformat(),
         }
         for req in requests
     ]
-    
+
     return response_handler.handle_response(formatted_requests, "network_requests")
 
 
 @section_tool("network-debugging")
-async def get_request_details(
-    request_id: str
-) -> Optional[Dict[str, Any]]:
+async def get_request_details(request_id: str) -> Optional[Dict[str, Any]]:
     """
     Get detailed information about a network request.
 
@@ -1408,9 +1411,7 @@ async def get_request_details(
 
 
 @section_tool("network-debugging")
-async def get_response_details(
-    request_id: str
-) -> Optional[Dict[str, Any]]:
+async def get_response_details(request_id: str) -> Optional[Dict[str, Any]]:
     """
     Get response details for a network request.
 
@@ -1427,10 +1428,7 @@ async def get_response_details(
 
 
 @section_tool("network-debugging")
-async def get_response_content(
-    instance_id: str,
-    request_id: str
-) -> Optional[str]:
+async def get_response_content(instance_id: str, request_id: str) -> Optional[str]:
     """
     Get response body content.
 
@@ -1450,18 +1448,16 @@ async def get_response_content(
     body = await network_interceptor.get_response_body(tab, request_id)
     if body:
         try:
-            return body.decode('utf-8')
+            return body.decode("utf-8")
         except UnicodeDecodeError:
             import base64
-            return base64.b64encode(body).decode('utf-8')
+
+            return base64.b64encode(body).decode("utf-8")
     return None
 
 
 @section_tool("network-debugging")
-async def modify_headers(
-    instance_id: str,
-    headers: Dict[str, str]
-) -> bool:
+async def modify_headers(instance_id: str, headers: Dict[str, str]) -> bool:
     """
     Modify request headers for future requests.
 
@@ -1482,10 +1478,7 @@ async def modify_headers(
 
 
 @section_tool("cookies-storage")
-async def get_cookies(
-    instance_id: str,
-    urls: Optional[List[str]] = None
-) -> List[Dict[str, Any]]:
+async def get_cookies(instance_id: str, urls: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """
     Get cookies for current page or specific URLs.
 
@@ -1515,7 +1508,7 @@ async def set_cookie(
     path: str = "/",
     secure: bool = False,
     http_only: bool = False,
-    same_site: Optional[str] = None
+    same_site: Optional[str] = None,
 ) -> bool:
     """
     Set a cookie.
@@ -1540,21 +1533,15 @@ async def set_cookie(
     tab = await browser_manager.get_tab(instance_id)
     if not tab:
         raise Exception(f"Instance not found: {instance_id}")
-    
+
     if not url and not domain:
-        current_url = tab.url if hasattr(tab, 'url') else None
+        current_url = tab.url if hasattr(tab, "url") else None
         if current_url:
             url = current_url
         else:
             raise Exception("At least one of 'url' or 'domain' must be specified")
-    
-    cookie = {
-        "name": name,
-        "value": value,
-        "path": path,
-        "secure": secure,
-        "http_only": http_only
-    }
+
+    cookie = {"name": name, "value": value, "path": path, "secure": secure, "http_only": http_only}
     if url:
         cookie["url"] = url
     if domain:
@@ -1565,10 +1552,7 @@ async def set_cookie(
 
 
 @section_tool("cookies-storage")
-async def clear_cookies(
-    instance_id: str,
-    url: Optional[str] = None
-) -> bool:
+async def clear_cookies(instance_id: str, url: Optional[str] = None) -> bool:
     """
     Clear cookies.
 
@@ -1669,10 +1653,7 @@ async def get_console_resource(instance_id: str) -> str:
 
 @section_tool("debugging")
 async def get_debug_view(
-    max_errors: int = 50,
-    max_warnings: int = 50,
-    max_info: int = 50,
-    include_all: bool = False
+    max_errors: int = 50, max_warnings: int = 50, max_info: int = 50, include_all: bool = False
 ) -> Dict[str, Any]:
     """
     Get comprehensive debug view with all logged errors and statistics.
@@ -1689,7 +1670,7 @@ async def get_debug_view(
     debug_data = debug_logger.get_debug_view_paginated(
         max_errors=max_errors if not include_all else None,
         max_warnings=max_warnings if not include_all else None,
-        max_info=max_info if not include_all else None
+        max_info=max_info if not include_all else None,
     )
     return debug_data
 
@@ -1703,10 +1684,7 @@ async def clear_debug_view() -> bool:
         bool: True if cleared successfully.
     """
     try:
-        await asyncio.wait_for(
-            asyncio.to_thread(debug_logger.clear_debug_view_safe),
-            timeout=10.0
-        )
+        await asyncio.wait_for(asyncio.to_thread(debug_logger.clear_debug_view_safe), timeout=10.0)
         return True
     except asyncio.TimeoutError:
         return False
@@ -1719,7 +1697,7 @@ async def export_debug_logs(
     max_warnings: int = 100,
     max_info: int = 100,
     include_all: bool = False,
-    format: str = "auto"
+    format: str = "auto",
 ) -> str:
     """
     Export debug logs to a file using the fastest available method with timeout protection.
@@ -1747,9 +1725,9 @@ async def export_debug_logs(
                 max_errors if not include_all else None,
                 max_warnings if not include_all else None,
                 max_info if not include_all else None,
-                format
+                format,
             ),
-            timeout=30.0
+            timeout=30.0,
         )
         return filepath
     except asyncio.TimeoutError:
@@ -1788,10 +1766,7 @@ async def list_tabs(instance_id: str) -> List[Dict[str, str]]:
 
 
 @section_tool("tabs")
-async def switch_tab(
-    instance_id: str,
-    tab_id: str
-) -> bool:
+async def switch_tab(instance_id: str, tab_id: str) -> bool:
     """
     Switch to a specific tab by bringing it to front.
 
@@ -1809,10 +1784,7 @@ async def switch_tab(
 
 
 @section_tool("tabs")
-async def close_tab(
-    instance_id: str,
-    tab_id: str
-) -> bool:
+async def close_tab(instance_id: str, tab_id: str) -> bool:
     """
     Close a specific tab.
 
@@ -1848,17 +1820,14 @@ async def get_active_tab(instance_id: str) -> Dict[str, Any]:
         return {"error": "No active tab found"}
     return {
         "tab_id": str(tab.target.target_id),
-        "url": getattr(tab, 'url', '') or '',
-        "title": getattr(tab.target, 'title', '') or 'Untitled',
-        "type": getattr(tab.target, 'type_', 'page')
+        "url": getattr(tab, "url", "") or "",
+        "title": getattr(tab.target, "title", "") or "Untitled",
+        "type": getattr(tab.target, "type_", "page"),
     }
 
 
 @section_tool("tabs")
-async def new_tab(
-    instance_id: str,
-    url: str = "about:blank"
-) -> Dict[str, Any]:
+async def new_tab(instance_id: str, url: str = "about:blank") -> Dict[str, Any]:
     """
     Open a new tab in the browser instance.
 
@@ -1880,9 +1849,9 @@ async def new_tab(
         await new_tab_obj
         return {
             "tab_id": str(new_tab_obj.target.target_id),
-            "url": getattr(new_tab_obj, 'url', '') or url,
-            "title": getattr(new_tab_obj.target, 'title', '') or 'New Tab',
-            "type": getattr(new_tab_obj.target, 'type_', 'page')
+            "url": getattr(new_tab_obj, "url", "") or url,
+            "title": getattr(new_tab_obj.target, "title", "") or "New Tab",
+            "type": getattr(new_tab_obj.target, "type_", "page"),
         }
     except Exception as e:
         raise Exception(f"Failed to create new tab: {str(e)}")
@@ -1895,7 +1864,7 @@ async def extract_element_styles(
     include_computed: bool = True,
     include_css_rules: bool = True,
     include_pseudo: bool = True,
-    include_inheritance: bool = False
+    include_inheritance: bool = False,
 ) -> Dict[str, Any]:
     """
     Extract complete styling information from an element.
@@ -1923,7 +1892,7 @@ async def extract_element_styles(
         include_computed=include_computed,
         include_css_rules=include_css_rules,
         include_pseudo=include_pseudo,
-        include_inheritance=include_inheritance
+        include_inheritance=include_inheritance,
     )
 
 
@@ -1934,7 +1903,7 @@ async def extract_element_structure(
     include_children: bool = False,
     include_attributes: bool = True,
     include_data_attributes: bool = True,
-    max_depth: int = 3
+    max_depth: int = 3,
 ) -> Dict[str, Any]:
     """
     Extract complete HTML structure and DOM information.
@@ -1962,7 +1931,7 @@ async def extract_element_structure(
         include_children=include_children,
         include_attributes=include_attributes,
         include_data_attributes=include_data_attributes,
-        max_depth=max_depth
+        max_depth=max_depth,
     )
 
 
@@ -1973,7 +1942,7 @@ async def extract_element_events(
     include_inline: bool = True,
     include_listeners: bool = True,
     include_framework: bool = True,
-    analyze_handlers: bool = False
+    analyze_handlers: bool = False,
 ) -> Dict[str, Any]:
     """
     Extract complete event listener and JavaScript handler information.
@@ -2001,7 +1970,7 @@ async def extract_element_events(
         include_inline=include_inline,
         include_listeners=include_listeners,
         include_framework=include_framework,
-        analyze_handlers=analyze_handlers
+        analyze_handlers=analyze_handlers,
     )
 
 
@@ -2012,7 +1981,7 @@ async def extract_element_animations(
     include_css_animations: bool = True,
     include_transitions: bool = True,
     include_transforms: bool = True,
-    analyze_keyframes: bool = True
+    analyze_keyframes: bool = True,
 ) -> Dict[str, Any]:
     """
     Extract CSS animations, transitions, and transforms.
@@ -2040,7 +2009,7 @@ async def extract_element_animations(
         include_css_animations=include_css_animations,
         include_transitions=include_transitions,
         include_transforms=include_transforms,
-        analyze_keyframes=analyze_keyframes
+        analyze_keyframes=analyze_keyframes,
     )
 
 
@@ -2051,7 +2020,7 @@ async def extract_element_assets(
     include_images: bool = True,
     include_backgrounds: bool = True,
     include_fonts: bool = True,
-    fetch_external: bool = False
+    fetch_external: bool = False,
 ) -> Dict[str, Any]:
     """
     Extract all assets related to an element (images, fonts, etc.).
@@ -2079,9 +2048,11 @@ async def extract_element_assets(
         include_images=include_images,
         include_backgrounds=include_backgrounds,
         include_fonts=include_fonts,
-        fetch_external=fetch_external
+        fetch_external=fetch_external,
     )
-    return response_handler.handle_response(result, f"element_assets_{instance_id}_{selector.replace(' ', '_')}")
+    return response_handler.handle_response(
+        result, f"element_assets_{instance_id}_{selector.replace(' ', '_')}"
+    )
 
 
 @section_tool("element-extraction")
@@ -2096,7 +2067,7 @@ async def extract_element_styles_cdp(
     """
     Extract element styles using direct CDP calls (no JavaScript evaluation).
     This prevents hanging issues by using nodriver's native CDP methods.
-    
+
     Args:
         instance_id (str): Browser instance ID
         selector (str): CSS selector for the element
@@ -2104,7 +2075,7 @@ async def extract_element_styles_cdp(
         include_css_rules (bool): Include matching CSS rules
         include_pseudo (bool): Include pseudo-element styles
         include_inheritance (bool): Include style inheritance chain
-    
+
     Returns:
         Dict[str, Any]: Styling data extracted using CDP
     """
@@ -2120,7 +2091,7 @@ async def extract_element_styles_cdp(
         include_computed=include_computed,
         include_css_rules=include_css_rules,
         include_pseudo=include_pseudo,
-        include_inheritance=include_inheritance
+        include_inheritance=include_inheritance,
     )
 
 
@@ -2130,7 +2101,7 @@ async def extract_related_files(
     analyze_css: bool = True,
     analyze_js: bool = True,
     follow_imports: bool = False,
-    max_depth: int = 2
+    max_depth: int = 2,
 ) -> Dict[str, Any]:
     """
     Discover and analyze related CSS/JS files for context.
@@ -2156,16 +2127,14 @@ async def extract_related_files(
         analyze_css=analyze_css,
         analyze_js=analyze_js,
         follow_imports=follow_imports,
-        max_depth=max_depth
+        max_depth=max_depth,
     )
     return response_handler.handle_response(result, f"related_files_{instance_id}")
 
 
 @section_tool("element-extraction")
 async def clone_element_complete(
-    instance_id: str,
-    selector: str,
-    extraction_options: Optional[str] = None
+    instance_id: str, selector: str, extraction_options: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Master function that extracts ALL element data using specialized functions.
@@ -2204,17 +2173,21 @@ async def clone_element_complete(
     result = await comprehensive_element_cloner.extract_complete_element(
         tab,
         selector=selector,
-        include_children=parsed_options.get('structure', {}).get('include_children', True) if parsed_options else True
+        include_children=(
+            parsed_options.get("structure", {}).get("include_children", True)
+            if parsed_options
+            else True
+        ),
     )
-    
+
     return response_handler.handle_response(
         result,
         fallback_filename_prefix="complete_clone",
         metadata={
             "selector": selector,
             "extraction_options": parsed_options,
-            "url": getattr(tab, 'url', 'unknown')
-        }
+            "url": getattr(tab, "url", "unknown"),
+        },
     )
 
 
@@ -2228,27 +2201,27 @@ async def hot_reload() -> str:
     """
     try:
         modules_to_reload = [
-            'browser_manager',
-            'network_interceptor',
-            'dom_handler',
-            'debug_logger',
-            'models'
+            "browser_manager",
+            "network_interceptor",
+            "dom_handler",
+            "debug_logger",
+            "models",
         ]
         reloaded_modules = []
         for module_name in modules_to_reload:
             if module_name in sys.modules:
                 importlib.reload(sys.modules[module_name])
                 reloaded_modules.append(module_name)
-                if module_name == 'browser_manager':
+                if module_name == "browser_manager":
                     global browser_manager, BrowserManager
                     browser_manager = BrowserManager()
-                elif module_name == 'network_interceptor':
+                elif module_name == "network_interceptor":
                     global network_interceptor, NetworkInterceptor
                     network_interceptor = NetworkInterceptor()
-                elif module_name == 'dom_handler':
+                elif module_name == "dom_handler":
                     global dom_handler, DOMHandler
                     dom_handler = DOMHandler()
-                elif module_name == 'debug_logger':
+                elif module_name == "debug_logger":
                     global debug_logger
                     from debug_logger import debug_logger
         return f"Hot reload completed. Reloaded modules: {', '.join(reloaded_modules)}"
@@ -2267,17 +2240,19 @@ async def reload_status() -> str:
     try:
         modules_info = []
         modules_to_check = [
-            'browser_manager',
-            'network_interceptor',
-            'dom_handler',
-            'debug_logger',
-            'models',
-            'persistent_storage'
+            "browser_manager",
+            "network_interceptor",
+            "dom_handler",
+            "debug_logger",
+            "models",
+            "persistent_storage",
         ]
         for module_name in modules_to_check:
             if module_name in sys.modules:
                 module = sys.modules[module_name]
-                modules_info.append(f"[OK] {module_name}: {getattr(module, '__file__', 'built-in')}")
+                modules_info.append(
+                    f"[OK] {module_name}: {getattr(module, '__file__', 'built-in')}"
+                )
             else:
                 modules_info.append(f"[MISSING] {module_name}: Not loaded")
         return "\n".join(modules_info)
@@ -2289,7 +2264,7 @@ async def reload_status() -> str:
 async def validate_browser_environment_tool() -> Dict[str, Any]:
     """
     Validate browser environment and diagnose potential issues.
-    
+
     Returns:
         Dict[str, Any]: Environment validation results with platform info and recommendations
     """
@@ -2301,15 +2276,13 @@ async def validate_browser_environment_tool() -> Dict[str, Any]:
             "platform_info": get_platform_info(),
             "is_ready": False,
             "issues": [f"Validation failed: {str(e)}"],
-            "warnings": []
+            "warnings": [],
         }
 
 
 @section_tool("progressive-cloning")
 async def clone_element_progressive(
-    instance_id: str,
-    selector: str,
-    include_children: bool = True
+    instance_id: str, selector: str, include_children: bool = True
 ) -> Dict[str, Any]:
     """
     Clone element progressively - returns lightweight base structure with element_id.
@@ -2328,14 +2301,14 @@ async def clone_element_progressive(
     tab = await browser_manager.get_tab(instance_id)
     if not tab:
         raise Exception(f"Instance not found: {instance_id}")
-    return await progressive_element_cloner.clone_element_progressive(tab, selector, include_children)
+    return await progressive_element_cloner.clone_element_progressive(
+        tab, selector, include_children
+    )
 
 
 @section_tool("progressive-cloning")
 async def expand_styles(
-    element_id: str,
-    categories: Optional[List[str]] = None,
-    properties: Optional[List[str]] = None
+    element_id: str, categories: Optional[List[str]] = None, properties: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
     Expand styles data for a stored element.
@@ -2352,10 +2325,7 @@ async def expand_styles(
 
 
 @section_tool("progressive-cloning")
-async def expand_events(
-    element_id: str,
-    event_types: Optional[List[str]] = None
-) -> Dict[str, Any]:
+async def expand_events(element_id: str, event_types: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Expand event listeners data for a stored element.
 
@@ -2371,9 +2341,7 @@ async def expand_events(
 
 @section_tool("progressive-cloning")
 async def expand_children(
-    element_id: str,
-    depth_range: Optional[List] = None,
-    max_count: Optional[Any] = None
+    element_id: str, depth_range: Optional[List] = None, max_count: Optional[Any] = None
 ) -> Dict[str, Any]:
     """
     Expand children data for a stored element.
@@ -2391,13 +2359,13 @@ async def expand_children(
             max_count = int(max_count) if max_count else None
         except ValueError:
             return {"error": f"Invalid max_count value: {max_count}"}
-    
+
     if isinstance(depth_range, list):
         try:
             depth_range = [int(x) if isinstance(x, str) else x for x in depth_range]
         except ValueError:
             return {"error": f"Invalid depth_range values: {depth_range}"}
-    
+
     depth_tuple = tuple(depth_range) if depth_range else None
 
     result = progressive_element_cloner.expand_children(element_id, depth_tuple, max_count)
@@ -2406,8 +2374,7 @@ async def expand_children(
 
 @section_tool("progressive-cloning")
 async def expand_css_rules(
-    element_id: str,
-    source_types: Optional[List[str]] = None
+    element_id: str, source_types: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
     Expand CSS rules data for a stored element.
@@ -2423,9 +2390,7 @@ async def expand_css_rules(
 
 
 @section_tool("progressive-cloning")
-async def expand_pseudo_elements(
-    element_id: str
-) -> Dict[str, Any]:
+async def expand_pseudo_elements(element_id: str) -> Dict[str, Any]:
     """
     Expand pseudo-elements data for a stored element.
 
@@ -2439,9 +2404,7 @@ async def expand_pseudo_elements(
 
 
 @section_tool("progressive-cloning")
-async def expand_animations(
-    element_id: str
-) -> Dict[str, Any]:
+async def expand_animations(element_id: str) -> Dict[str, Any]:
     """
     Expand animations and fonts data for a stored element.
 
@@ -2466,9 +2429,7 @@ async def list_stored_elements() -> Dict[str, Any]:
 
 
 @section_tool("progressive-cloning")
-async def clear_stored_element(
-    element_id: str
-) -> Dict[str, Any]:
+async def clear_stored_element(element_id: str) -> Dict[str, Any]:
     """
     Clear a specific stored element.
 
@@ -2494,9 +2455,7 @@ async def clear_all_elements() -> Dict[str, Any]:
 
 @section_tool("file-extraction")
 async def clone_element_to_file(
-    instance_id: str,
-    selector: str,
-    extraction_options: Optional[str] = None
+    instance_id: str, selector: str, extraction_options: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Clone element completely and save to file, returning file path instead of full data.
@@ -2532,9 +2491,7 @@ async def clone_element_to_file(
 
 @section_tool("file-extraction")
 async def extract_complete_element_to_file(
-    instance_id: str,
-    selector: str,
-    include_children: bool = True
+    instance_id: str, selector: str, include_children: bool = True
 ) -> Dict[str, Any]:
     """
     Extract complete element using working comprehensive cloner and save to file.
@@ -2563,16 +2520,14 @@ async def extract_complete_element_to_file(
 
 @section_tool("element-extraction")
 async def extract_complete_element_cdp(
-    instance_id: str,
-    selector: str,
-    include_children: bool = True
+    instance_id: str, selector: str, include_children: bool = True
 ) -> Dict[str, Any]:
     """
     Extract complete element using native CDP methods for 100% accuracy.
 
     This uses Chrome DevTools Protocol's native methods to extract:
     - Complete computed styles via CSS.getComputedStyleForNode
-    - Matched CSS rules via CSS.getMatchedStylesForNode  
+    - Matched CSS rules via CSS.getMatchedStylesForNode
     - Event listeners via DOMDebugger.getEventListeners
     - Complete DOM structure and attributes
 
@@ -2604,7 +2559,7 @@ async def extract_element_styles_to_file(
     include_computed: bool = True,
     include_css_rules: bool = True,
     include_pseudo: bool = True,
-    include_inheritance: bool = False
+    include_inheritance: bool = False,
 ) -> Dict[str, Any]:
     """
     Extract element styles and save to file, returning file path.
@@ -2632,7 +2587,7 @@ async def extract_element_styles_to_file(
         include_computed=include_computed,
         include_css_rules=include_css_rules,
         include_pseudo=include_pseudo,
-        include_inheritance=include_inheritance
+        include_inheritance=include_inheritance,
     )
 
 
@@ -2643,7 +2598,7 @@ async def extract_element_structure_to_file(
     include_children: bool = False,
     include_attributes: bool = True,
     include_data_attributes: bool = True,
-    max_depth: int = 3
+    max_depth: int = 3,
 ) -> Dict[str, Any]:
     """
     Extract element structure and save to file, returning file path.
@@ -2671,7 +2626,7 @@ async def extract_element_structure_to_file(
         include_children=include_children,
         include_attributes=include_attributes,
         include_data_attributes=include_data_attributes,
-        max_depth=max_depth
+        max_depth=max_depth,
     )
 
 
@@ -2682,7 +2637,7 @@ async def extract_element_events_to_file(
     include_inline: bool = True,
     include_listeners: bool = True,
     include_framework: bool = True,
-    analyze_handlers: bool = True
+    analyze_handlers: bool = True,
 ) -> Dict[str, Any]:
     """
     Extract element events and save to file, returning file path.
@@ -2710,7 +2665,7 @@ async def extract_element_events_to_file(
         include_inline=include_inline,
         include_listeners=include_listeners,
         include_framework=include_framework,
-        analyze_handlers=analyze_handlers
+        analyze_handlers=analyze_handlers,
     )
 
 
@@ -2721,7 +2676,7 @@ async def extract_element_animations_to_file(
     include_css_animations: bool = True,
     include_transitions: bool = True,
     include_transforms: bool = True,
-    analyze_keyframes: bool = True
+    analyze_keyframes: bool = True,
 ) -> Dict[str, Any]:
     """
     Extract element animations and save to file, returning file path.
@@ -2749,7 +2704,7 @@ async def extract_element_animations_to_file(
         include_css_animations=include_css_animations,
         include_transitions=include_transitions,
         include_transforms=include_transforms,
-        analyze_keyframes=analyze_keyframes
+        analyze_keyframes=analyze_keyframes,
     )
 
 
@@ -2760,7 +2715,7 @@ async def extract_element_assets_to_file(
     include_images: bool = True,
     include_backgrounds: bool = True,
     include_fonts: bool = True,
-    fetch_external: bool = False
+    fetch_external: bool = False,
 ) -> Dict[str, Any]:
     """
     Extract element assets and save to file, returning file path.
@@ -2788,7 +2743,7 @@ async def extract_element_assets_to_file(
         include_images=include_images,
         include_backgrounds=include_backgrounds,
         include_fonts=include_fonts,
-        fetch_external=fetch_external
+        fetch_external=fetch_external,
     )
 
 
@@ -2804,9 +2759,7 @@ async def list_clone_files() -> List[Dict[str, Any]]:
 
 
 @section_tool("file-extraction")
-async def cleanup_clone_files(
-    max_age_hours: int = 24
-) -> Dict[str, int]:
+async def cleanup_clone_files(max_age_hours: int = 24) -> Dict[str, int]:
     """
     Clean up old clone files to save disk space.
 
@@ -2833,9 +2786,7 @@ async def list_cdp_commands() -> List[str]:
 
 @section_tool("cdp-functions")
 async def execute_cdp_command(
-    instance_id: str,
-    command: str,
-    params: Dict[str, Any] = None
+    instance_id: str, command: str, params: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """
     Execute any CDP Runtime command with given parameters.
@@ -2844,17 +2795,17 @@ async def execute_cdp_command(
         instance_id (str): Browser instance ID.
         command (str): CDP command name (e.g., 'evaluate', 'callFunctionOn').
         params (Dict[str, Any], optional): Command parameters as a dictionary.
-                IMPORTANT: Use snake_case parameter names (e.g., 'return_by_value') 
-                NOT camelCase ('returnByValue'). The nodriver library expects 
+                IMPORTANT: Use snake_case parameter names (e.g., 'return_by_value')
+                NOT camelCase ('returnByValue'). The nodriver library expects
                 Python-style parameter names.
 
     Returns:
         Dict[str, Any]: Command execution result.
-        
+
     Example:
         # Correct - use snake_case
         params = {"expression": "document.title", "return_by_value": True}
-        
+
         params = {"expression": "document.title", "returnByValue": True}
     """
     guard = await _check_pending_login_guard(instance_id)
@@ -2867,9 +2818,7 @@ async def execute_cdp_command(
 
 
 @section_tool("cdp-functions")
-async def get_execution_contexts(
-    instance_id: str
-) -> List[Dict[str, Any]]:
+async def get_execution_contexts(instance_id: str) -> List[Dict[str, Any]]:
     """
     Get all available JavaScript execution contexts.
 
@@ -2892,7 +2841,7 @@ async def get_execution_contexts(
             "name": ctx.name,
             "origin": ctx.origin,
             "unique_id": ctx.unique_id,
-            "aux_data": ctx.aux_data
+            "aux_data": ctx.aux_data,
         }
         for ctx in contexts
     ]
@@ -2900,8 +2849,7 @@ async def get_execution_contexts(
 
 @section_tool("cdp-functions")
 async def discover_global_functions(
-    instance_id: str,
-    context_id: str = None
+    instance_id: str, context_id: str = None
 ) -> List[Dict[str, Any]]:
     """
     Discover all global JavaScript functions available in the page.
@@ -2925,37 +2873,36 @@ async def discover_global_functions(
             "name": func.name,
             "path": func.path,
             "signature": func.signature,
-            "description": func.description
+            "description": func.description,
         }
         for func in functions
     ]
-    
+
     file_response = response_handler.handle_response(
         result,
         fallback_filename_prefix="global_functions",
         metadata={
             "context_id": context_id,
             "function_count": len(result),
-            "url": getattr(tab, 'url', 'unknown')
-        }
+            "url": getattr(tab, "url", "unknown"),
+        },
     )
-    
+
     if isinstance(file_response, dict) and "file_path" in file_response:
-        return [{
-            "name": "LARGE_RESPONSE_SAVED_TO_FILE",
-            "path": "file_storage",
-            "signature": "automatic_file_fallback",
-            "description": f"Response too large ({file_response['estimated_tokens']} tokens), saved to: {file_response['filename']}"
-        }]
-    
+        return [
+            {
+                "name": "LARGE_RESPONSE_SAVED_TO_FILE",
+                "path": "file_storage",
+                "signature": "automatic_file_fallback",
+                "description": f"Response too large ({file_response['estimated_tokens']} tokens), saved to: {file_response['filename']}",
+            }
+        ]
+
     return file_response
 
 
 @section_tool("cdp-functions")
-async def discover_object_methods(
-    instance_id: str,
-    object_path: str
-) -> List[Dict[str, Any]]:
+async def discover_object_methods(instance_id: str, object_path: str) -> List[Dict[str, Any]]:
     """
     Discover methods of a specific JavaScript object.
 
@@ -2978,22 +2925,19 @@ async def discover_object_methods(
             "name": method.name,
             "path": method.path,
             "signature": method.signature,
-            "description": method.description
+            "description": method.description,
         }
         for method in methods
     ]
-    
+
     return response_handler.handle_response(
-        methods_data,
-        f"object_methods_{object_path.replace('.', '_')}"
+        methods_data, f"object_methods_{object_path.replace('.', '_')}"
     )
 
 
 @section_tool("cdp-functions")
 async def call_javascript_function(
-    instance_id: str,
-    function_path: str,
-    args: List[Any] = None
+    instance_id: str, function_path: str, args: List[Any] = None
 ) -> Dict[str, Any]:
     """
     Call a JavaScript function with arguments.
@@ -3016,10 +2960,7 @@ async def call_javascript_function(
 
 
 @section_tool("cdp-functions")
-async def inspect_function_signature(
-    instance_id: str,
-    function_path: str
-) -> Dict[str, Any]:
+async def inspect_function_signature(instance_id: str, function_path: str) -> Dict[str, Any]:
     """
     Inspect a JavaScript function's signature and details.
 
@@ -3041,9 +2982,7 @@ async def inspect_function_signature(
 
 @section_tool("cdp-functions")
 async def inject_and_execute_script(
-    instance_id: str,
-    script_code: str,
-    context_id: str = None
+    instance_id: str, script_code: str, context_id: str = None
 ) -> Dict[str, Any]:
     """
     Inject and execute custom JavaScript code.
@@ -3067,9 +3006,7 @@ async def inject_and_execute_script(
 
 @section_tool("cdp-functions")
 async def create_persistent_function(
-    instance_id: str,
-    function_name: str,
-    function_code: str
+    instance_id: str, function_name: str, function_code: str
 ) -> Dict[str, Any]:
     """
     Create a persistent JavaScript function that survives page reloads.
@@ -3088,13 +3025,14 @@ async def create_persistent_function(
     tab = await browser_manager.get_tab(instance_id)
     if not tab:
         return {"success": False, "error": f"Instance not found: {instance_id}"}
-    return await cdp_function_executor.create_persistent_function(tab, function_name, function_code, instance_id)
+    return await cdp_function_executor.create_persistent_function(
+        tab, function_name, function_code, instance_id
+    )
 
 
 @section_tool("cdp-functions")
 async def execute_function_sequence(
-    instance_id: str,
-    function_calls: List[Dict[str, Any]]
+    instance_id: str, function_calls: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
     Execute a sequence of JavaScript function calls.
@@ -3110,24 +3048,25 @@ async def execute_function_sequence(
     if guard:
         return guard
     from cdp_function_executor import FunctionCall
+
     tab = await browser_manager.get_tab(instance_id)
     if not tab:
         return [{"success": False, "error": f"Instance not found: {instance_id}"}]
     calls = []
     for call_data in function_calls:
-        calls.append(FunctionCall(
-            function_path=call_data['function_path'],
-            args=call_data.get('args', []),
-            context_id=call_data.get('context_id')
-        ))
+        calls.append(
+            FunctionCall(
+                function_path=call_data["function_path"],
+                args=call_data.get("args", []),
+                context_id=call_data.get("context_id"),
+            )
+        )
     return await cdp_function_executor.execute_function_sequence(tab, calls)
 
 
 @section_tool("cdp-functions")
 async def create_python_binding(
-    instance_id: str,
-    binding_name: str,
-    python_code: str
+    instance_id: str, binding_name: str, python_code: str
 ) -> Dict[str, Any]:
     """
     Create a binding that allows JavaScript to call Python functions.
@@ -3148,10 +3087,12 @@ async def create_python_binding(
         return {"success": False, "error": f"Instance not found: {instance_id}"}
     try:
         exec_globals = {}
-        exec(python_code, exec_globals)  # nosec B102 — CDP function executor, user-controlled feature
+        exec(
+            python_code, exec_globals
+        )  # nosec B102 — CDP function executor, user-controlled feature
         python_function = None
         for name, obj in exec_globals.items():
-            if callable(obj) and not name.startswith('_'):
+            if callable(obj) and not name.startswith("_"):
                 python_function = obj
                 break
         if not python_function:
@@ -3162,10 +3103,7 @@ async def create_python_binding(
 
 
 @section_tool("cdp-functions")
-async def execute_python_in_browser(
-    instance_id: str,
-    python_code: str
-) -> Dict[str, Any]:
+async def execute_python_in_browser(instance_id: str, python_code: str) -> Dict[str, Any]:
     """
     Execute Python code by translating it to JavaScript.
 
@@ -3186,9 +3124,7 @@ async def execute_python_in_browser(
 
 
 @section_tool("cdp-functions")
-async def get_function_executor_info(
-    instance_id: str = None
-) -> Dict[str, Any]:
+async def get_function_executor_info(instance_id: str = None) -> Dict[str, Any]:
     """
     Get information about the CDP function executor state.
 
@@ -3210,24 +3146,24 @@ async def create_dynamic_hook(
     requirements: Dict[str, Any],
     function_code: str,
     instance_ids: Optional[List[str]] = None,
-    priority: int = 100
+    priority: int = 100,
 ) -> Dict[str, Any]:
     """
     Create a new dynamic hook with AI-generated Python function.
-    
+
     This is the new powerful hook system that allows AI to write custom Python functions
     that process network requests in real-time with no pending state.
-    
+
     Args:
         name (str): Human-readable hook name
         requirements (Dict[str, Any]): Matching criteria (url_pattern, method, resource_type, custom_condition)
         function_code (str): Python function code that processes requests (must define process_request(request))
         instance_ids (Optional[List[str]]): Browser instances to apply hook to (all if None)
         priority (int): Hook priority (lower = higher priority)
-        
+
     Returns:
         Dict[str, Any]: Hook creation result with hook_id
-        
+
     Example function_code:
         ```python
         def process_request(request):
@@ -3241,7 +3177,7 @@ async def create_dynamic_hook(
         requirements=requirements,
         function_code=function_code,
         instance_ids=instance_ids,
-        priority=priority
+        priority=priority,
     )
 
 
@@ -3252,11 +3188,11 @@ async def create_simple_dynamic_hook(
     action: str,
     target_url: Optional[str] = None,
     custom_headers: Optional[Dict[str, str]] = None,
-    instance_ids: Optional[List[str]] = None
+    instance_ids: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Create a simple dynamic hook using predefined templates (easier for AI).
-    
+
     Args:
         name (str): Hook name
         url_pattern (str): URL pattern to match
@@ -3264,7 +3200,7 @@ async def create_simple_dynamic_hook(
         target_url (Optional[str]): Target URL for redirect action
         custom_headers (Optional[Dict[str, str]]): Headers to add for add_headers action
         instance_ids (Optional[List[str]]): Browser instances to apply hook to
-        
+
     Returns:
         Dict[str, Any]: Hook creation result
     """
@@ -3274,7 +3210,7 @@ async def create_simple_dynamic_hook(
         action=action,
         target_url=target_url,
         custom_headers=custom_headers,
-        instance_ids=instance_ids
+        instance_ids=instance_ids,
     )
 
 
@@ -3282,10 +3218,10 @@ async def create_simple_dynamic_hook(
 async def list_dynamic_hooks(instance_id: Optional[str] = None) -> Dict[str, Any]:
     """
     List all dynamic hooks.
-    
+
     Args:
         instance_id (Optional[str]): Optional filter by browser instance
-        
+
     Returns:
         Dict[str, Any]: List of hooks with details and statistics
     """
@@ -3296,10 +3232,10 @@ async def list_dynamic_hooks(instance_id: Optional[str] = None) -> Dict[str, Any
 async def get_dynamic_hook_details(hook_id: str) -> Dict[str, Any]:
     """
     Get detailed information about a specific dynamic hook.
-    
+
     Args:
         hook_id (str): Hook identifier
-        
+
     Returns:
         Dict[str, Any]: Detailed hook information including function code
     """
@@ -3310,10 +3246,10 @@ async def get_dynamic_hook_details(hook_id: str) -> Dict[str, Any]:
 async def remove_dynamic_hook(hook_id: str) -> Dict[str, Any]:
     """
     Remove a dynamic hook.
-    
+
     Args:
         hook_id (str): Hook identifier to remove
-        
+
     Returns:
         Dict[str, Any]: Removal status
     """
@@ -3324,7 +3260,7 @@ async def remove_dynamic_hook(hook_id: str) -> Dict[str, Any]:
 def get_hook_documentation() -> Dict[str, Any]:
     """
     Get comprehensive documentation for creating hook functions (AI learning).
-    
+
     Returns:
         Dict[str, Any]: Documentation of request object structure and HookAction types
     """
@@ -3335,7 +3271,7 @@ def get_hook_documentation() -> Dict[str, Any]:
 def get_hook_examples() -> Dict[str, Any]:
     """
     Get example hook functions for AI learning.
-    
+
     Returns:
         Dict[str, Any]: Collection of example hook functions with explanations
     """
@@ -3346,7 +3282,7 @@ def get_hook_examples() -> Dict[str, Any]:
 def get_hook_requirements_documentation() -> Dict[str, Any]:
     """
     Get documentation on hook requirements and matching criteria.
-    
+
     Returns:
         Dict[str, Any]: Requirements documentation and best practices
     """
@@ -3357,7 +3293,7 @@ def get_hook_requirements_documentation() -> Dict[str, Any]:
 def get_hook_common_patterns() -> Dict[str, Any]:
     """
     Get common hook patterns and use cases.
-    
+
     Returns:
         Dict[str, Any]: Common patterns like ad blocking, API proxying, etc.
     """
@@ -3368,58 +3304,87 @@ def get_hook_common_patterns() -> Dict[str, Any]:
 def validate_hook_function(function_code: str) -> Dict[str, Any]:
     """
     Validate hook function code for common issues before creating.
-    
+
     Args:
         function_code (str): Python function code to validate
-        
+
     Returns:
         Dict[str, Any]: Validation results with issues and warnings
     """
     return dynamic_hook_ai.validate_hook_function(function_code=function_code)
 
 
-
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Stealth Browser MCP Server with 92 tools")
-    parser.add_argument("--transport", choices=["stdio", "http"], default="stdio",
-                      help="Transport protocol to use")
-    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", 8000)),
-                      help="Port for HTTP transport")
-    parser.add_argument("--host", default="0.0.0.0",  # nosec B104 — MCP server must bind all interfaces in container
-                      help="Host for HTTP transport")
-    
-    parser.add_argument("--disable-browser-management", action="store_true",
-                      help="Disable browser management tools (spawn, navigate, close, etc.)")
-    parser.add_argument("--disable-element-interaction", action="store_true",
-                      help="Disable element interaction tools (click, type, scroll, etc.)")
-    parser.add_argument("--disable-element-extraction", action="store_true",
-                      help="Disable element extraction tools (styles, structure, events, etc.)")
-    parser.add_argument("--disable-file-extraction", action="store_true",
-                      help="Disable file-based extraction tools")
-    parser.add_argument("--disable-network-debugging", action="store_true",
-                      help="Disable network debugging and interception tools")
-    parser.add_argument("--disable-cdp-functions", action="store_true",
-                      help="Disable CDP function execution tools")
-    parser.add_argument("--disable-progressive-cloning", action="store_true",
-                      help="Disable progressive element cloning tools")
-    parser.add_argument("--disable-cookies-storage", action="store_true",
-                      help="Disable cookie and storage management tools")
-    parser.add_argument("--disable-tabs", action="store_true",
-                      help="Disable tab management tools")
-    parser.add_argument("--disable-debugging", action="store_true",
-                      help="Disable debug and system tools")
-    parser.add_argument("--disable-dynamic-hooks", action="store_true",
-                      help="Disable dynamic network hook system")
-    
-    parser.add_argument("--minimal", action="store_true",
-                      help="Enable only core browser management and element interaction (disable everything else)")
-    parser.add_argument("--list-sections", action="store_true",
-                      help="List all available tool sections and exit")
-    
+    parser.add_argument(
+        "--transport", choices=["stdio", "http"], default="stdio", help="Transport protocol to use"
+    )
+    parser.add_argument(
+        "--port", type=int, default=int(os.getenv("PORT", 8000)), help="Port for HTTP transport"
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",  # nosec B104 — MCP server must bind all interfaces in container
+        help="Host for HTTP transport",
+    )
+
+    parser.add_argument(
+        "--disable-browser-management",
+        action="store_true",
+        help="Disable browser management tools (spawn, navigate, close, etc.)",
+    )
+    parser.add_argument(
+        "--disable-element-interaction",
+        action="store_true",
+        help="Disable element interaction tools (click, type, scroll, etc.)",
+    )
+    parser.add_argument(
+        "--disable-element-extraction",
+        action="store_true",
+        help="Disable element extraction tools (styles, structure, events, etc.)",
+    )
+    parser.add_argument(
+        "--disable-file-extraction", action="store_true", help="Disable file-based extraction tools"
+    )
+    parser.add_argument(
+        "--disable-network-debugging",
+        action="store_true",
+        help="Disable network debugging and interception tools",
+    )
+    parser.add_argument(
+        "--disable-cdp-functions", action="store_true", help="Disable CDP function execution tools"
+    )
+    parser.add_argument(
+        "--disable-progressive-cloning",
+        action="store_true",
+        help="Disable progressive element cloning tools",
+    )
+    parser.add_argument(
+        "--disable-cookies-storage",
+        action="store_true",
+        help="Disable cookie and storage management tools",
+    )
+    parser.add_argument("--disable-tabs", action="store_true", help="Disable tab management tools")
+    parser.add_argument(
+        "--disable-debugging", action="store_true", help="Disable debug and system tools"
+    )
+    parser.add_argument(
+        "--disable-dynamic-hooks", action="store_true", help="Disable dynamic network hook system"
+    )
+
+    parser.add_argument(
+        "--minimal",
+        action="store_true",
+        help="Enable only core browser management and element interaction (disable everything else)",
+    )
+    parser.add_argument(
+        "--list-sections", action="store_true", help="List all available tool sections and exit"
+    )
+
     args = parser.parse_args()
-    
+
     if args.list_sections:
         print("Available tool sections:")
         print("  browser-management: Core browser operations (10 tools)")
@@ -3436,14 +3401,22 @@ if __name__ == "__main__":
         print("\nUse --disable-<section-name> to disable specific sections")
         print("Use --minimal to enable only core functionality")
         sys.exit(0)
-    
+
     if args.minimal:
-        DISABLED_SECTIONS.update([
-            "element-extraction", "file-extraction", "network-debugging",
-            "cdp-functions", "progressive-cloning", "cookies-storage",
-            "tabs", "debugging", "dynamic-hooks"
-        ])
-    
+        DISABLED_SECTIONS.update(
+            [
+                "element-extraction",
+                "file-extraction",
+                "network-debugging",
+                "cdp-functions",
+                "progressive-cloning",
+                "cookies-storage",
+                "tabs",
+                "debugging",
+                "dynamic-hooks",
+            ]
+        )
+
     if args.disable_browser_management:
         DISABLED_SECTIONS.add("browser-management")
     if args.disable_element_interaction:
@@ -3466,12 +3439,11 @@ if __name__ == "__main__":
         DISABLED_SECTIONS.add("debugging")
     if args.disable_dynamic_hooks:
         DISABLED_SECTIONS.add("dynamic-hooks")
-    
+
     if DISABLED_SECTIONS:
         print(f"Disabled tool sections: {', '.join(sorted(DISABLED_SECTIONS))}", file=sys.stderr)
-    
+
     if args.transport == "http":
         mcp.run(transport="http", host=args.host, port=args.port)
     else:
         mcp.run(transport="stdio")
-

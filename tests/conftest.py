@@ -46,11 +46,7 @@ async def browser_manager():
 @pytest_asyncio.fixture(scope="function")
 async def browser_instance(browser_manager):
     """Create a browser instance for testing."""
-    options = BrowserOptions(
-        headless=False,
-        viewport_width=1280,
-        viewport_height=720
-    )
+    options = BrowserOptions(headless=False, viewport_width=1280, viewport_height=720)
     instance = await browser_manager.spawn_browser(options)
     yield instance
     # Cleanup is handled by browser_manager fixture
