@@ -59,9 +59,8 @@ jobs:
       - name: Set up Python
         run: uv python install ${{ env.PYTHON_VERSION }}
 
-      - name: Install security tools
-        run: |
-          uv pip install bandit pip-audit safety
+      - name: Install dev dependencies
+        run: uv sync --dev
 
       - name: SAST — Bandit (code vulnerabilities)
         run: |
