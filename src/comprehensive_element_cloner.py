@@ -17,8 +17,8 @@ Key features:
 
 import os
 import sys
-from typing import Dict, Any, Optional
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))

@@ -1,7 +1,8 @@
 """Tests for JavaScript execution."""
 
-import pytest
 import asyncio
+
+import pytest
 
 
 class TestJavaScriptExecution:

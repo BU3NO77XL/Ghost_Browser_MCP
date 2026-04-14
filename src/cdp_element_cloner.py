@@ -18,9 +18,10 @@ instead of limited JavaScript-based extraction.
 import asyncio
 import json
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 import nodriver as uc
+
 from debug_logger import debug_logger
 
 

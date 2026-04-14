@@ -5,11 +5,12 @@ This module provides AI-friendly functions for creating, managing, and learning
 about dynamic hook functions.
 """
 
-from typing import Dict, List, Any, Optional
+import json
+from typing import Any, Dict, List, Optional
+
+from debug_logger import debug_logger
 from dynamic_hook_system import dynamic_hook_system
 from hook_learning_system import hook_learning_system
-from debug_logger import debug_logger
-import json
 
 
 class DynamicHookAIInterface:

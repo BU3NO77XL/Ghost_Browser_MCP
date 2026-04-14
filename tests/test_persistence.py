@@ -19,8 +19,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from browser_manager import BrowserManager
-from persistent_storage import InMemoryStorage, persistent_storage
 from models import BrowserOptions
+from persistent_storage import InMemoryStorage, persistent_storage
 
 
 class TestStoragePersistence:

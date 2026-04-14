@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional
 import nodriver as uc
 from nodriver import Tab
 
-from models import NetworkRequest, NetworkResponse
 from debug_logger import debug_logger
+from models import NetworkRequest, NetworkResponse
 
 
 class NetworkInterceptor:

@@ -23,24 +23,24 @@ from cdp_function_executor import CDPFunctionExecutor
 from comprehensive_element_cloner import comprehensive_element_cloner
 from debug_logger import debug_logger
 from dom_handler import DOMHandler
+from dynamic_hook_ai_interface import dynamic_hook_ai
+from dynamic_hook_system import dynamic_hook_system
 from element_cloner import element_cloner
 from file_based_element_cloner import file_based_element_cloner
+from manual_login_handler import manual_login_handler
 from models import (
     BrowserOptions,
-    NavigationOptions,
-    ScriptResult,
     BrowserState,
+    NavigationOptions,
     PageState,
+    ScriptResult,
 )
 from network_interceptor import NetworkInterceptor
-from dynamic_hook_system import dynamic_hook_system
-from dynamic_hook_ai_interface import dynamic_hook_ai
 from persistent_storage import persistent_storage
+from platform_utils import get_platform_info, validate_browser_environment
+from process_cleanup import process_cleanup
 from progressive_element_cloner import progressive_element_cloner
 from response_handler import response_handler
-from platform_utils import validate_browser_environment, get_platform_info
-from process_cleanup import process_cleanup
-from manual_login_handler import manual_login_handler
 
 DISABLED_SECTIONS = set()
 
@@ -1297,8 +1297,9 @@ async def take_screenshot(
     guard = await _check_pending_login_guard(instance_id)
     if guard:
         return guard
-    from PIL import Image
     import io
+
+    from PIL import Image
 
     tab = await browser_manager.get_tab(instance_id)
     if not tab:

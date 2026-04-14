@@ -30,8 +30,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import server as _srv
-from manual_login_handler import manual_login_handler
 from login_watcher import login_watcher
+from manual_login_handler import manual_login_handler
 from persistent_storage import persistent_storage
 
 # ── MCP tool shortcuts ────────────────────────────────────────────────────────

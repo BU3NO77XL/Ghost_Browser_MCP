@@ -436,8 +436,8 @@ class TestLoginGuardIntegration:
         When instance is pending login, MCP tools must return a blocked dict
         instead of executing normally.
         """
-        from manual_login_handler import manual_login_handler
         from login_watcher import login_watcher
+        from manual_login_handler import manual_login_handler
 
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -466,8 +466,8 @@ class TestLoginGuardIntegration:
     @pytest.mark.asyncio
     async def test_tools_unblocked_after_confirm(self):
         """After confirm_manual_login, tools must work normally again."""
-        from manual_login_handler import manual_login_handler
         from login_watcher import login_watcher
+        from manual_login_handler import manual_login_handler
 
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)
@@ -616,8 +616,8 @@ class TestFullAIWorkflow:
         4. confirm_manual_login() → success
         5. Continue automation normally
         """
-        from manual_login_handler import manual_login_handler
         from login_watcher import login_watcher
+        from manual_login_handler import manual_login_handler
 
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)

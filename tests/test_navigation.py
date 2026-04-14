@@ -1,7 +1,8 @@
 """Tests for navigation functionality."""
 
-import pytest
 import asyncio
+
+import pytest
 
 
 class TestBasicNavigation:

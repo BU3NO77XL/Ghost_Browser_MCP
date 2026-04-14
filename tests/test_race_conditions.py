@@ -1,9 +1,11 @@
 """Tests for race conditions and thread safety."""
 
-import pytest
 import asyncio
-from manual_login_handler import manual_login_handler
+
+import pytest
+
 from login_watcher import login_watcher
+from manual_login_handler import manual_login_handler
 
 
 class TestConcurrentAccess:

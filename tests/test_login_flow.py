@@ -1,9 +1,11 @@
 """Tests for login flow and manual login handling."""
 
-import pytest
 import asyncio
-from manual_login_handler import manual_login_handler
+
+import pytest
+
 from login_watcher import login_watcher
+from manual_login_handler import manual_login_handler
 
 
 class TestLoginDetection:

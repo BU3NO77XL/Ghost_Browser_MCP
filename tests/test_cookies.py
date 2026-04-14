@@ -1,7 +1,8 @@
 """Tests for cookie management."""
 
-import pytest
 import asyncio
+
+import pytest
 
 
 class TestCookieOperations:

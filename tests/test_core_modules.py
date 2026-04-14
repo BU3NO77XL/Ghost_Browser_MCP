@@ -12,8 +12,8 @@ import asyncio
 import json
 import sys
 import time
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -144,7 +144,7 @@ class TestModels:
         assert HookStatus.ACTIVE == "active"
 
     def test_network_hook_model(self):
-        from models import NetworkHook, HookStage, HookAction
+        from models import HookAction, HookStage, NetworkHook
 
         hook = NetworkHook(
             hook_id="h-1",
@@ -265,7 +265,7 @@ class TestPlatformUtils:
 class TestProcessCleanup:
 
     def test_singleton_exists(self):
-        from process_cleanup import process_cleanup, ProcessCleanup
+        from process_cleanup import ProcessCleanup, process_cleanup
 
         assert isinstance(process_cleanup, ProcessCleanup)
 
@@ -294,8 +294,9 @@ class TestProcessCleanup:
         assert result is False
 
     def test_track_and_untrack_mock_process(self):
-        from process_cleanup import process_cleanup
         import os
+
+        from process_cleanup import process_cleanup
 
         class MockProcess:
             pid = os.getpid()  # Use current process PID (safe, won't kill it)
@@ -322,8 +323,9 @@ class TestProcessCleanup:
 
     def test_is_process_alive_current_process(self):
         """Current process should be alive."""
-        from process_cleanup import process_cleanup
         import os
+
+        from process_cleanup import process_cleanup
 
         class MockProcess:
             pid = os.getpid()
@@ -340,7 +342,7 @@ class TestProcessCleanup:
 class TestResponseHandler:
 
     def test_singleton_exists(self):
-        from response_handler import response_handler, ResponseHandler
+        from response_handler import ResponseHandler, response_handler
 
         assert isinstance(response_handler, ResponseHandler)
 
@@ -432,7 +434,7 @@ class TestResponseHandler:
 class TestHookLearningSystem:
 
     def test_singleton_exists(self):
-        from hook_learning_system import hook_learning_system, HookLearningSystem
+        from hook_learning_system import HookLearningSystem, hook_learning_system
 
         assert isinstance(hook_learning_system, HookLearningSystem)
 
@@ -572,7 +574,7 @@ def process_request(request):
 class TestDynamicHookAIInterface:
 
     def test_singleton_exists(self):
-        from dynamic_hook_ai_interface import dynamic_hook_ai, DynamicHookAIInterface
+        from dynamic_hook_ai_interface import DynamicHookAIInterface, dynamic_hook_ai
 
         assert isinstance(dynamic_hook_ai, DynamicHookAIInterface)
 
@@ -742,7 +744,7 @@ def process_request(request):
 class TestProgressiveElementCloner:
 
     def test_singleton_exists(self):
-        from progressive_element_cloner import progressive_element_cloner, ProgressiveElementCloner
+        from progressive_element_cloner import ProgressiveElementCloner, progressive_element_cloner
 
         assert isinstance(progressive_element_cloner, ProgressiveElementCloner)
 

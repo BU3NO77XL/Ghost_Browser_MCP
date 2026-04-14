@@ -17,8 +17,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from browser_manager import BrowserManager
-from persistent_storage import persistent_storage
 from models import BrowserOptions, BrowserState
+from persistent_storage import persistent_storage
 
 
 class TestInstanceReuse:

@@ -3,11 +3,12 @@
 import asyncio
 import json
 import time
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
-from nodriver import Tab, Element
-from models import ElementInfo, ElementAction
+from nodriver import Element, Tab
+
 from debug_logger import debug_logger
+from models import ElementAction, ElementInfo
 
 
 class DOMHandler:

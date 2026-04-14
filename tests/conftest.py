@@ -11,11 +11,11 @@ import pytest_asyncio
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from browser_manager import BrowserManager
-from network_interceptor import NetworkInterceptor
-from manual_login_handler import manual_login_handler
-from login_watcher import login_watcher
 from debug_logger import debug_logger
+from login_watcher import login_watcher
+from manual_login_handler import manual_login_handler
 from models import BrowserOptions
+from network_interceptor import NetworkInterceptor
 
 
 @pytest.fixture(scope="session")

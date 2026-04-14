@@ -1,7 +1,9 @@
 """Tests for browser management functionality."""
 
-import pytest
 import asyncio
+
+import pytest
+
 from models import BrowserOptions, BrowserState
 
 

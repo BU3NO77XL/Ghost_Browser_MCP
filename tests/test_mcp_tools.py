@@ -362,8 +362,8 @@ class TestMCPLoginFlow:
         4. confirm_manual_login() succeeds
         5. Instance is usable again
         """
-        from manual_login_handler import manual_login_handler
         from login_watcher import login_watcher
+        from manual_login_handler import manual_login_handler
 
         iid = await _spawn()
 
@@ -406,8 +406,8 @@ class TestMCPLoginFlow:
         If confirm_manual_login fails (still on login page),
         the watcher should be restarted automatically.
         """
-        from manual_login_handler import manual_login_handler
         from login_watcher import login_watcher
+        from manual_login_handler import manual_login_handler
 
         iid = await _spawn()
         await navigate(iid, "https://httpbin.org/html", inject_cookies=False)

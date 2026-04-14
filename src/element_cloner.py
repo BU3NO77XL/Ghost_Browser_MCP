@@ -3,9 +3,10 @@
 import asyncio
 import json
 import re
-from typing import Dict, List, Any, Optional, Set, Union
-from urllib.parse import urljoin, urlparse
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Union
+from urllib.parse import urljoin, urlparse
+
 import requests
 
 try:

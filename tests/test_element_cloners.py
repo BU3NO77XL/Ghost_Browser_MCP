@@ -252,8 +252,8 @@ class TestProgressiveElementClonerBrowser:
 
     @pytest.mark.asyncio
     async def test_list_stored_elements_after_clone(self):
-        from progressive_element_cloner import progressive_element_cloner
         from persistent_storage import persistent_storage
+        from progressive_element_cloner import progressive_element_cloner
 
         iid = await _spawn()
         tab = await _srv.browser_manager.get_tab(iid)

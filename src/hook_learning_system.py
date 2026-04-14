@@ -5,8 +5,8 @@ This system provides examples, documentation, and learning materials for AI
 to understand how to create effective hook functions.
 """
 
-from typing import Dict, List, Any
 import ast
+from typing import Any, Dict, List
 
 
 class HookLearningSystem:
