@@ -194,6 +194,8 @@ class TestPlatformUtils:
             "python_version",
             "is_root",
             "is_container",
+            "is_ci",
+            "should_disable_sandbox",
             "required_sandbox_args",
         ]
         for key in required:
@@ -206,6 +208,8 @@ class TestPlatformUtils:
         assert isinstance(info["system"], str)
         assert isinstance(info["is_root"], bool)
         assert isinstance(info["is_container"], bool)
+        assert isinstance(info["is_ci"], bool)
+        assert isinstance(info["should_disable_sandbox"], bool)
         assert isinstance(info["required_sandbox_args"], list)
 
     def test_check_browser_executable_finds_browser(self):
@@ -257,6 +261,18 @@ class TestPlatformUtils:
         # All args should be strings starting with --
         for arg in args:
             assert isinstance(arg, str)
+
+    def test_linux_ci_disables_browser_sandbox(self, monkeypatch):
+        from core import platform_utils
+
+        monkeypatch.setenv("GITHUB_ACTIONS", "true")
+        monkeypatch.setattr(platform_utils.platform, "system", lambda: "Linux")
+        monkeypatch.setattr(platform_utils, "is_running_as_root", lambda: False)
+        monkeypatch.setattr(platform_utils, "is_running_in_container", lambda: False)
+
+        assert platform_utils.is_running_in_ci() is True
+        assert platform_utils.should_disable_browser_sandbox() is True
+        assert "--no-sandbox" in platform_utils.get_required_sandbox_args()
 
 
 # ─────────────────────────────────────────────────────────────────────────────

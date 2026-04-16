@@ -64,6 +64,36 @@ def is_running_in_container() -> bool:
     return any(container_indicators)
 
 
+def is_running_in_ci() -> bool:
+    """
+    Check if the process is running in a CI environment.
+
+    Returns:
+        bool: True if common CI environment variables are present
+    """
+    return any(
+        os.environ.get(name, "").lower() in ("1", "true", "yes")
+        for name in ("CI", "GITHUB_ACTIONS")
+    )
+
+
+def should_disable_browser_sandbox() -> bool:
+    """
+    Decide whether Chromium sandboxing should be disabled for this environment.
+
+    GitHub-hosted Linux runners can fail to start Chrome with the sandbox enabled
+    even when the user is not root, so treat Linux CI like containers/root.
+
+    Returns:
+        bool: True when browser sandboxing should be disabled
+    """
+    return (
+        is_running_as_root()
+        or is_running_in_container()
+        or (platform.system().lower() == "linux" and is_running_in_ci())
+    )
+
+
 def get_required_sandbox_args() -> List[str]:
     """
     Get the required browser arguments for sandbox handling based on current environment.
@@ -73,10 +103,7 @@ def get_required_sandbox_args() -> List[str]:
     """
     args = []
 
-    if is_running_as_root():
-        args.extend(["--no-sandbox", "--disable-setuid-sandbox"])
-
-    if is_running_in_container():
+    if should_disable_browser_sandbox():
         args.extend(
             [
                 "--no-sandbox",
@@ -136,11 +163,15 @@ def get_platform_info() -> dict:
         "python_version": sys.version,
         "is_root": is_running_as_root(),
         "is_container": is_running_in_container(),
+        "is_ci": is_running_in_ci(),
+        "should_disable_sandbox": should_disable_browser_sandbox(),
         "required_sandbox_args": get_required_sandbox_args(),
         "user_id": getattr(os, "getuid", lambda: "N/A")(),
         "effective_user_id": getattr(os, "geteuid", lambda: "N/A")(),
         "environment_vars": {
             "DISPLAY": os.environ.get("DISPLAY"),
+            "CI": os.environ.get("CI"),
+            "GITHUB_ACTIONS": os.environ.get("GITHUB_ACTIONS"),
             "container": os.environ.get("container"),
             "KUBERNETES_SERVICE_HOST": os.environ.get("KUBERNETES_SERVICE_HOST"),
             "USER": os.environ.get("USER"),
@@ -277,6 +308,9 @@ def validate_browser_environment() -> dict:
 
     if platform_info["is_container"]:
         warnings.append("Running in container - additional arguments will be added")
+
+    if platform_info["should_disable_sandbox"] and not platform_info["is_root"]:
+        warnings.append("Browser sandbox will be disabled for this runtime environment")
 
     if platform_info["system"] not in ["Windows", "Linux", "Darwin"]:
         warnings.append(f"Untested platform: {platform_info['system']}")

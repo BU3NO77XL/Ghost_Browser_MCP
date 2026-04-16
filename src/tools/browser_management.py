@@ -44,10 +44,10 @@ def register(mcp, section_tool, deps):
             Dict[str, Any]: Instance information including instance_id.
         """
         try:
-            from core.platform_utils import is_running_as_root, is_running_in_container
+            from core.platform_utils import should_disable_browser_sandbox
 
             if sandbox is None:
-                sandbox = not (is_running_as_root() or is_running_in_container())
+                sandbox = not should_disable_browser_sandbox()
             elif isinstance(sandbox, str):
                 sandbox = sandbox.lower() in ("true", "1", "yes", "on", "enabled")
             elif isinstance(sandbox, int):
