@@ -45,30 +45,50 @@ from core.target_handler import TargetHandler
 from core.temp_file_manager import temp_file_manager
 from core.webauthn_handler import WebAuthnHandler
 
-_MINIMAL_DISABLED_SECTIONS = {
-    "element-extraction",
-    "file-extraction",
-    "network-debugging",
-    "cdp-functions",
-    "progressive-cloning",
-    "cookies-storage",
-    "tabs",
-    "debugging",
-    "dynamic-hooks",
+_CORE_SECTIONS = {
+    "browser-management",
+    "element-interaction",
 }
 
+_TOOL_SECTIONS = {
+    "browser-management": ("Core browser operations", 11),
+    "element-interaction": ("Page interaction and element manipulation", 12),
+    "element-extraction": ("Element cloning and extraction", 9),
+    "file-extraction": ("File-based extraction tools", 8),
+    "network-debugging": ("Network monitoring and response inspection", 5),
+    "cdp-functions": ("Chrome DevTools Protocol function execution", 13),
+    "cdp-advanced": ("Advanced CDP performance, emulation, accessibility, and PDF tools", 13),
+    "progressive-cloning": ("Progressive element cloning system", 10),
+    "cookies-storage": ("Cookie management", 3),
+    "storage-management": ("LocalStorage, SessionStorage, IndexedDB, and Cache Storage", 15),
+    "storage-cdp-management": ("Origin storage quota, cleanup, and cache tracking via CDP", 4),
+    "tabs": ("Tab management", 5),
+    "debugging": ("Server debug and environment diagnostics", 7),
+    "debugger-management": ("JavaScript debugger breakpoints, stepping, and call frames", 9),
+    "dynamic-hooks": ("AI-powered network hook system", 10),
+    "css-management": ("CSS inspection and stylesheet editing", 6),
+    "database-management": ("WebSQL inspection and querying", 3),
+    "serviceworker-management": ("PWA service worker control", 7),
+    "backgroundservice-management": ("PWA background service event observation", 4),
+    "webauthn-management": ("Virtual WebAuthn authenticator testing", 6),
+    "security-management": ("Security state and certificate error controls", 3),
+    "animation-management": ("CSS and Web Animations API control", 6),
+    "profiler-management": ("CPU profiling and JavaScript code coverage", 5),
+    "heapprofiler-management": ("JavaScript heap profiling and garbage collection", 7),
+    "log-management": ("Browser Log domain controls and violation reports", 5),
+    "system-info-management": ("Server, browser, GPU, feature, and process information", 4),
+    "fetch-management": ("Request interception and fulfillment via CDP Fetch", 7),
+    "overlay-management": ("DOM, grid, flex, rect, and scroll-snap overlays", 8),
+    "audits-management": ("Encoded response inspection and contrast checks", 4),
+    "target-management": ("Browser target, worker, iframe, and session management", 7),
+    "browser-cdp-management": ("Window, permission, and download behavior management", 6),
+    "dom-snapshot-management": ("Full DOM snapshots with computed styles via CDP", 3),
+}
+
+_MINIMAL_DISABLED_SECTIONS = set(_TOOL_SECTIONS) - _CORE_SECTIONS
+
 _DISABLE_FLAG_TO_SECTION = {
-    "--disable-browser-management": "browser-management",
-    "--disable-element-interaction": "element-interaction",
-    "--disable-element-extraction": "element-extraction",
-    "--disable-file-extraction": "file-extraction",
-    "--disable-network-debugging": "network-debugging",
-    "--disable-cdp-functions": "cdp-functions",
-    "--disable-progressive-cloning": "progressive-cloning",
-    "--disable-cookies-storage": "cookies-storage",
-    "--disable-tabs": "tabs",
-    "--disable-debugging": "debugging",
-    "--disable-dynamic-hooks": "dynamic-hooks",
+    f"--disable-{section}": section for section in _TOOL_SECTIONS
 }
 
 
@@ -423,10 +443,18 @@ async def get_console_resource(instance_id: str) -> str:
     return json.dumps({"error": "Instance not found"})
 
 
+def _format_tool_sections() -> List[str]:
+    """Return printable tool-section descriptions for CLI output."""
+    return [
+        f"  {section}: {description} ({tool_count} tools)"
+        for section, (description, tool_count) in _TOOL_SECTIONS.items()
+    ]
+
+
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Stealth Browser MCP Server with 92 tools")
+    parser = argparse.ArgumentParser(description="Stealth Browser MCP Server with 225 tools")
     parser.add_argument(
         "--transport", choices=["stdio", "http"], default="stdio", help="Transport protocol to use"
     )
@@ -439,53 +467,16 @@ if __name__ == "__main__":
         default="0.0.0.0",  # nosec B104
         help="Host for HTTP transport",
     )
-    parser.add_argument(
-        "--disable-browser-management",
-        action="store_true",
-        help="Disable browser management tools (spawn, navigate, close, etc.)",
-    )
-    parser.add_argument(
-        "--disable-element-interaction",
-        action="store_true",
-        help="Disable element interaction tools (click, type, scroll, etc.)",
-    )
-    parser.add_argument(
-        "--disable-element-extraction",
-        action="store_true",
-        help="Disable element extraction tools (styles, structure, events, etc.)",
-    )
-    parser.add_argument(
-        "--disable-file-extraction", action="store_true", help="Disable file-based extraction tools"
-    )
-    parser.add_argument(
-        "--disable-network-debugging",
-        action="store_true",
-        help="Disable network debugging and interception tools",
-    )
-    parser.add_argument(
-        "--disable-cdp-functions", action="store_true", help="Disable CDP function execution tools"
-    )
-    parser.add_argument(
-        "--disable-progressive-cloning",
-        action="store_true",
-        help="Disable progressive element cloning tools",
-    )
-    parser.add_argument(
-        "--disable-cookies-storage",
-        action="store_true",
-        help="Disable cookie and storage management tools",
-    )
-    parser.add_argument("--disable-tabs", action="store_true", help="Disable tab management tools")
-    parser.add_argument(
-        "--disable-debugging", action="store_true", help="Disable debug and system tools"
-    )
-    parser.add_argument(
-        "--disable-dynamic-hooks", action="store_true", help="Disable dynamic network hook system"
-    )
+    for section, (description, _) in _TOOL_SECTIONS.items():
+        parser.add_argument(
+            f"--disable-{section}",
+            action="store_true",
+            help=f"Disable {description.lower()} tools",
+        )
     parser.add_argument(
         "--minimal",
         action="store_true",
-        help="Enable only core browser management and element interaction (disable everything else)",
+        help="Enable only core browser management and element interaction",
     )
     parser.add_argument(
         "--list-sections", action="store_true", help="List all available tool sections and exit"
@@ -495,58 +486,17 @@ if __name__ == "__main__":
 
     if args.list_sections:
         print("Available tool sections:")
-        print("  browser-management: Core browser operations (10 tools)")
-        print("  element-interaction: Page interaction and element manipulation (11 tools)")
-        print("  element-extraction: Element cloning and extraction (9 tools)")
-        print("  file-extraction: File-based extraction tools (9 tools)")
-        print("  network-debugging: Network monitoring and interception (5 tools)")
-        print("  cdp-functions: Chrome DevTools Protocol function execution (13 tools)")
-        print("  progressive-cloning: Advanced element cloning system (10 tools)")
-        print("  cookies-storage: Cookie and storage management (3 tools)")
-        print("  tabs: Tab management (5 tools)")
-        print("  debugging: Debug and system tools (7 tools)")
-        print("  dynamic-hooks: AI-powered network hook system (10 tools)")
+        print("\n".join(_format_tool_sections()))
         print("\nUse --disable-<section-name> to disable specific sections")
         print("Use --minimal to enable only core functionality")
         sys.exit(0)
 
     if args.minimal:
-        DISABLED_SECTIONS.update(
-            [
-                "element-extraction",
-                "file-extraction",
-                "network-debugging",
-                "cdp-functions",
-                "progressive-cloning",
-                "cookies-storage",
-                "tabs",
-                "debugging",
-                "dynamic-hooks",
-            ]
-        )
+        DISABLED_SECTIONS.update(_MINIMAL_DISABLED_SECTIONS)
 
-    if args.disable_browser_management:
-        DISABLED_SECTIONS.add("browser-management")
-    if args.disable_element_interaction:
-        DISABLED_SECTIONS.add("element-interaction")
-    if args.disable_element_extraction:
-        DISABLED_SECTIONS.add("element-extraction")
-    if args.disable_file_extraction:
-        DISABLED_SECTIONS.add("file-extraction")
-    if args.disable_network_debugging:
-        DISABLED_SECTIONS.add("network-debugging")
-    if args.disable_cdp_functions:
-        DISABLED_SECTIONS.add("cdp-functions")
-    if args.disable_progressive_cloning:
-        DISABLED_SECTIONS.add("progressive-cloning")
-    if args.disable_cookies_storage:
-        DISABLED_SECTIONS.add("cookies-storage")
-    if args.disable_tabs:
-        DISABLED_SECTIONS.add("tabs")
-    if args.disable_debugging:
-        DISABLED_SECTIONS.add("debugging")
-    if args.disable_dynamic_hooks:
-        DISABLED_SECTIONS.add("dynamic-hooks")
+    for flag, section in _DISABLE_FLAG_TO_SECTION.items():
+        if getattr(args, flag.removeprefix("--").replace("-", "_")):
+            DISABLED_SECTIONS.add(section)
 
     if DISABLED_SECTIONS:
         print(f"Disabled tool sections: {', '.join(sorted(DISABLED_SECTIONS))}", file=sys.stderr)

@@ -56,8 +56,8 @@ Bypass Cloudflare, antibot systems, and social media blocks with real browser in
 ## Features
 
 - **Antibot bypass** — Works on Cloudflare, Queue-It, and other protection systems that block traditional automation
-- **~209 tools across 20 sections** — From basic navigation to advanced CDP function execution
-- **Modular loading** — Run the full tool suite or a minimal 21-tool core; disable what you don't need
+- **225 tools across 32 sections** — From basic navigation to advanced CDP function execution
+- **Modular loading** — Run the full tool suite or a minimal 23-tool core; disable what you don't need
 - **Pixel-accurate element cloning** — Extract complete elements with all CSS, DOM structure, events, and assets via CDP
 - **Network interception** — Inspect every request, response, header, and payload through your AI agent
 - **Dynamic hook system** — AI-generated Python functions that intercept and modify network traffic in real-time
@@ -178,12 +178,12 @@ Restart your MCP client and ask your agent:
 
 ## Modular Architecture
 
-Choose exactly what functionality you need. Run the full tool suite or strip it down to 21 core tools.
+Choose exactly what functionality you need. Run the full tool suite or strip it down to 23 core tools.
 
 | Mode | Tools | Use Case |
 |------|-------|----------|
-| **Full** (default) | ~209 | Complete browser automation and debugging |
-| **Minimal** (`--minimal`) | 21 | Core browser automation only |
+| **Full** (default) | 225 | Complete browser automation and debugging |
+| **Minimal** (`--minimal`) | 23 | Core browser automation only |
 | **Custom** (`--disable-*`) | Your choice | Disable specific sections |
 
 ```bash
@@ -196,10 +196,10 @@ python src/server.py --list-sections
 
 | Section | Tools | Description |
 |---------|-------|-------------|
-| `browser-management` | 10 | Core browser operations |
-| `element-interaction` | 11 | Page interaction and manipulation |
+| `browser-management` | 11 | Core browser operations |
+| `element-interaction` | 12 | Page interaction and manipulation |
 | `element-extraction` | 9 | Element cloning and extraction |
-| `file-extraction` | 9 | File-based extraction tools |
+| `file-extraction` | 8 | File-based extraction tools |
 | `network-debugging` | 5 | Network monitoring and interception |
 | `cdp-functions` | 13 | Chrome DevTools Protocol execution |
 | `progressive-cloning` | 10 | Advanced element cloning |
@@ -209,7 +209,7 @@ python src/server.py --list-sections
 | `dynamic-hooks` | 10 | AI-powered network hooks |
 | `log-management` | 5 | CDP Log domain — console logs and violations |
 | `storage-cdp-management` | 4 | Origin data clearing and quota |
-| `system-info-management` | 3 | GPU, process, and feature flag info |
+| `system-info-management` | 4 | GPU, process, and feature flag info |
 | `fetch-management` | 7 | Granular request interception |
 | `overlay-management` | 8 | Element highlighting and visual overlays |
 | `audits-management` | 4 | Lighthouse-style audits and contrast checks |
@@ -406,8 +406,8 @@ python src/server.py --list-sections
 | Network debugging | Full request/response inspection via AI | Basic |
 | API reverse engineering | Payload inspection through chat | Manual tools only |
 | Dynamic hook system | AI-generated Python functions for real-time interception | Not available |
-| Modular architecture | 20 sections, 21–209 tools | Fixed ~20 tools |
-| Total tools | ~209 (customizable) | ~20 |
+| Modular architecture | 32 sections, 23–225 tools | Fixed ~20 tools |
+| Total tools | 225 (customizable) | ~20 |
 
 Tested on: LinkedIn, Instagram, Twitter/X, Amazon, banking portals, government sites, Cloudflare-protected APIs, Nike SNKRS, Ticketmaster, Supreme.
 
@@ -425,7 +425,7 @@ This fork includes the upstream fix for stdout corruption from [#8](https://gith
 Run with `--sandbox=false` or ensure your environment supports sandboxing. The server auto-detects root and container environments and adjusts accordingly.
 
 **Too many tools cluttering the AI chat**
-Use `--minimal` for 21 core tools, or selectively disable sections:
+Use `--minimal` for 23 core tools, or selectively disable sections:
 ```bash
 python src/server.py --disable-cdp-functions --disable-dynamic-hooks --disable-progressive-cloning
 ```
