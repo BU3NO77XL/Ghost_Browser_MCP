@@ -1,5 +1,5 @@
 <div align="center">
-<img src="media/UndetectedStealthBrowser.png" alt="Ghost Browser MCP" width="200"/>
+<img src="docs/media/UndetectedStealthBrowser.png" alt="Ghost Browser MCP" width="200"/>
 
 # Ghost Browser MCP
 
@@ -42,9 +42,9 @@ Bypass Cloudflare, antibot systems, and social media blocks with real browser in
 ## Demo
 
 <div align="center">
-<img src="media/showcase-demo-full.gif" alt="Ghost Browser MCP Demo" width="800" style="border-radius: 8px;">
+<img src="docs/media/showcase-demo-full.gif" alt="Ghost Browser MCP Demo" width="800" style="border-radius: 8px;">
 <br><br>
-<a href="media/Showcase%20Stealth%20Browser%20Mcp.mp4" download>
+<a href="docs/media/Showcase%20Stealth%20Browser%20Mcp.mp4" download>
   <img src="https://img.shields.io/badge/Watch%20HD%20Video-red?style=for-the-badge&logo=video&logoColor=white" alt="Watch HD Video">
 </a>
 </div>
@@ -455,7 +455,7 @@ Cookie template: [docs/examples/cookies_example.txt](docs/examples/cookies_examp
 ## Showcase
 
 <div align="center">
-<img src="media/AugmentHeroClone.PNG" alt="Augment Code Hero Recreation" width="700" style="border-radius: 8px;">
+<img src="docs/media/AugmentHeroClone.PNG" alt="Augment Code Hero Recreation" width="700" style="border-radius: 8px;">
 </div>
 
 **Augment Code hero clone** — A user asked Claude to clone the hero section from [augmentcode.com](https://www.augmentcode.com/). The agent spawned a ghost browser, navigated to the site, extracted the complete element via CDP (styles, structure, assets), and generated a pixel-accurate HTML recreation with responsive design and animations. The entire process took under two minutes of conversation.
@@ -480,11 +480,3 @@ If this tool saved you time or made you money, consider supporting development:
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
----
-
-<div align="center">
-
-[![Upstream Star History Chart]()
-
-</div>
