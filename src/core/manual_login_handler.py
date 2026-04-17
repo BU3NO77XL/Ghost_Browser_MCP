@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional
 from nodriver import Tab
 
 from core.debug_logger import debug_logger
+from core.remote_browser_access import build_remote_login_access
 
 LOGIN_URL_INDICATORS = (
     "login",
@@ -67,7 +68,17 @@ class ManualLoginHandler:
             info = self._pending.get(instance_id)
             if not info:
                 return None
-            return {"instance_id": instance_id, **info, "status": "waiting_for_user"}
+            pending_info = {"instance_id": instance_id, **info, "status": "waiting_for_user"}
+
+        remote_access = build_remote_login_access(instance_id)
+        if remote_access:
+            pending_info["manual_login_url"] = remote_access["url"]
+            pending_info["remote_browser_access"] = remote_access
+            pending_info["instructions"] = (
+                "Open manual_login_url to complete login in the remote browser, "
+                "then ask the agent to call confirm_manual_login."
+            )
+        return pending_info
 
     async def _clear_pending(self, instance_id: str) -> None:
         async with self._lock:

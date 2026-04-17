@@ -18,17 +18,25 @@ async def check_pending_login_guard(instance_id: str) -> Optional[Dict[str, Any]
     if not await manual_login_handler.is_pending_login(instance_id):
         return None
     pending = await manual_login_handler.get_pending_info(instance_id)
+    manual_login_url = pending.get("manual_login_url") if pending else None
+    login_location = (
+        f"Open this remote browser URL to complete login: {manual_login_url}. "
+        if manual_login_url
+        else "Ask the user to log in on the open browser window. "
+    )
     return {
         "blocked": True,
         "action_required": "STOP_AND_WAIT_FOR_USER",
         "reason": "INSTANCE_PENDING_MANUAL_LOGIN",
         "instance_id": instance_id,
         "pending_since": pending.get("registered_at") if pending else None,
+        "manual_login_url": manual_login_url,
+        "remote_browser_access": pending.get("remote_browser_access") if pending else None,
         "next_step": f"Ask user to log in manually, WAIT for their reply, then call confirm_manual_login(instance_id='{instance_id}')",
         "message": (
             "STOP — This browser instance is waiting for the user to log in manually. "
             "You CANNOT use any tools on this instance until the user finishes logging in. "
-            "Send a message to the user asking them to log in on the open browser window. "
+            f"{login_location}"
             "WAIT for the user to reply confirming they are done. "
             f"Then call confirm_manual_login(instance_id='{instance_id}'). "
             "DO NOT try other tools, DO NOT close the browser, DO NOT give up."

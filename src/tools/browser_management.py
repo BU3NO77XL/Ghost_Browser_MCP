@@ -259,6 +259,13 @@ def register(mcp, section_tool, deps):
                     tab=tab,
                     url=final_url,
                 )
+                pending_info = await manual_login_handler.get_pending_info(instance_id) or {}
+                manual_login_url = pending_info.get("manual_login_url")
+                login_location = (
+                    f"Open this remote browser URL so the user can log in: {manual_login_url}. "
+                    if manual_login_url
+                    else "A login page was detected. The browser window is OPEN and VISIBLE to the user. "
+                )
                 return {
                     "url": final_url,
                     "title": title,
@@ -267,13 +274,14 @@ def register(mcp, section_tool, deps):
                     "login_required": True,
                     "instance_id": instance_id,
                     "action_required": "STOP_AND_WAIT_FOR_USER",
+                    "manual_login_url": manual_login_url,
+                    "remote_browser_access": pending_info.get("remote_browser_access"),
                     "next_step": f"Ask user to log in manually, WAIT for their reply, then call confirm_manual_login(instance_id='{instance_id}')",
                     "message": (
                         "STOP — MANUAL LOGIN REQUIRED. "
-                        "A login page was detected. The browser window is OPEN and VISIBLE to the user. "
+                        f"{login_location}"
                         "You MUST follow this EXACT protocol: "
-                        "(1) Send a message to the user saying: 'O navegador está aberto na página de login. "
-                        "Por favor, faça o login manualmente na janela do navegador. Quando terminar, me avise.' "
+                        "(1) Send the manual login location to the user and ask them to finish login. "
                         "(2) STOP and WAIT for the user to reply confirming they logged in. "
                         "DO NOT take any other action until the user responds. "
                         f"(3) After user confirms, call confirm_manual_login(instance_id='{instance_id}'). "
@@ -381,12 +389,15 @@ def register(mcp, section_tool, deps):
                 "message": "Instância pronta.",
             }
 
+        pending_info = await manual_login_handler.get_pending_info(instance_id) or {}
         return {
             "instance_id": instance_id,
             "current_url": current_url,
             "is_login_page": True,
             "is_authenticated": False,
             "pending_manual_login": True,
+            "manual_login_url": pending_info.get("manual_login_url"),
+            "remote_browser_access": pending_info.get("remote_browser_access"),
             "message": "Aguardando login manual. O watcher detectará automaticamente quando o usuário fizer login.",
         }
 

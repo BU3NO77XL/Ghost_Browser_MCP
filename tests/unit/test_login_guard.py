@@ -232,3 +232,49 @@ class TestPendingLoginStateIntegrity:
         # Cleanup
         await manual_login_handler._clear_pending(instance_id)
         await login_watcher.stop_watching(instance_id)
+
+    @pytest.mark.asyncio
+    async def test_pending_info_includes_remote_login_url_when_enabled(
+        self, browser_tab, monkeypatch
+    ):
+        """Pending info should expose remote viewer metadata when configured."""
+        instance_id = "pending-remote-viewer"
+        url = "https://httpbin.org/forms/post"
+
+        monkeypatch.setenv("GHOST_REMOTE_VIEWER_ENABLED", "true")
+        monkeypatch.setenv("GHOST_REMOTE_VIEWER_PUBLIC_URL", "https://browser.example.com")
+        monkeypatch.setenv("GHOST_REMOTE_VIEWER_TOKEN_SECRET", "test-secret")
+
+        await manual_login_handler.register_pending_login(instance_id, browser_tab, url)
+
+        info = await manual_login_handler.get_pending_info(instance_id)
+        assert info is not None
+        assert info["manual_login_url"].startswith("https://browser.example.com/vnc.html?")
+        assert info["remote_browser_access"]["type"] == "novnc"
+        assert info["remote_browser_access"]["requires_token"] is True
+
+        await manual_login_handler._clear_pending(instance_id)
+        await login_watcher.stop_watching(instance_id)
+
+    @pytest.mark.asyncio
+    async def test_guard_includes_remote_login_url_when_enabled(self, browser_tab, monkeypatch):
+        """The real guard should return the remote login URL for agent handoff."""
+        from core.login_guard import check_pending_login_guard
+
+        instance_id = "guard-remote-viewer"
+        url = "https://httpbin.org/forms/post"
+
+        monkeypatch.setenv("GHOST_REMOTE_VIEWER_ENABLED", "true")
+        monkeypatch.setenv("GHOST_REMOTE_VIEWER_PUBLIC_URL", "https://browser.example.com")
+        monkeypatch.setenv("GHOST_REMOTE_VIEWER_TOKEN_SECRET", "test-secret")
+
+        await manual_login_handler.register_pending_login(instance_id, browser_tab, url)
+
+        result = await check_pending_login_guard(instance_id)
+        assert result is not None
+        assert result["manual_login_url"].startswith("https://browser.example.com/vnc.html?")
+        assert result["remote_browser_access"]["type"] == "novnc"
+        assert "Open this remote browser URL" in result["message"]
+
+        await manual_login_handler._clear_pending(instance_id)
+        await login_watcher.stop_watching(instance_id)
