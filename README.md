@@ -107,6 +107,24 @@ The words used in this README mean:
 - **noVNC**: a browser-based remote screen so you can see/control Chrome inside Docker.
 - **manual login handoff**: when an agent pauses and sends you a noVNC link so you can log in manually.
 
+Docker files in this repository:
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Image recipe: installs system packages, Chrome, Python dependencies, and the app |
+| `docker/entrypoint.sh` | Container startup: starts Xvfb, fluxbox, x11vnc, noVNC, then the MCP server |
+| `docker-compose.yml` | Local source build: builds the image from this repository and runs the container |
+| `docker-compose.image.yml` | Quick reproduction: runs a published image without needing the source code |
+
+The relationship is:
+
+```text
+Dockerfile                = image recipe
+docker/entrypoint.sh      = container startup
+docker-compose.yml        = local build from source code
+docker-compose.image.yml  = quick reproduction with published image
+```
+
 So the flow is:
 
 ```text
