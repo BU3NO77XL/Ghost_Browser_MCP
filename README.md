@@ -179,10 +179,68 @@ Restart your MCP client and ask your agent:
 
 ## Docker Runtime
 
-Run Ghost Browser with MCP HTTP transport and a remote Chromium viewer:
+Docker is the recommended runtime when you want to run Ghost Browser without managing
+Python, Chrome, system libraries, Xvfb, or noVNC directly on the host. The container starts:
+
+- MCP HTTP server on port `8000`
+- Chromium/Chrome inside a virtual display (`Xvfb`)
+- noVNC browser viewer on port `6080`
+- persistent runtime data under the Docker volume `ghost_browser_data`
+
+This is especially useful for VPS deployments and mobile handoff flows. If an AI agent reaches
+a manual login page, Ghost Browser can return a remote noVNC URL; the user opens that URL,
+logs in inside the same server-side browser session, and the agent continues with the same
+cookies, localStorage, and browser context.
+
+### Install Docker Compose
+
+Docker Compose v2 is included with Docker Desktop on Windows and macOS. On Linux/VPS
+servers, install Docker Engine with the Compose plugin.
+
+Windows:
+
+1. Install Docker Desktop: https://www.docker.com/products/docker-desktop/
+2. Enable the WSL 2 backend when prompted.
+3. Open PowerShell and verify:
+
+```powershell
+docker --version
+docker compose version
+```
+
+macOS:
+
+1. Install Docker Desktop: https://www.docker.com/products/docker-desktop/
+2. Open Terminal and verify:
+
+```bash
+docker --version
+docker compose version
+```
+
+Linux / VPS:
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker "$USER"
+newgrp docker
+docker --version
+docker compose version
+```
+
+### Run Locally
+
+Build and start the container:
 
 ```bash
 docker compose up -d --build
+```
+
+Check status and logs:
+
+```bash
+docker compose ps
+docker compose logs -f ghost-browser
 ```
 
 Default endpoints:
@@ -192,25 +250,100 @@ Default endpoints:
 | MCP HTTP | `http://localhost:8000/mcp` |
 | noVNC browser viewer | `http://localhost:6080/vnc.html` |
 
-For a VPS or reverse proxy, set the public noVNC URL so manual-login responses can be
-forwarded to users:
+Open the noVNC URL in your browser to see and control the remote Chromium display.
+
+Stop the runtime:
 
 ```bash
-GHOST_REMOTE_VIEWER_PUBLIC_URL=https://browser.example.com docker compose up -d
+docker compose down
 ```
 
-Relevant environment variables:
+Reset persistent runtime data:
+
+```bash
+docker compose down -v
+```
+
+### VPS / Remote Access
+
+On a VPS, set the public noVNC URL so manual-login responses can be forwarded to users:
+
+```bash
+GHOST_REMOTE_VIEWER_PUBLIC_URL=https://browser.example.com docker compose up -d --build
+```
+
+Use a reverse proxy such as Caddy, Nginx, or Traefik to expose noVNC over HTTPS. Keep the
+raw VNC port private; the compose file only exposes noVNC on `127.0.0.1:6080` by default.
+
+Recommended VPS shape:
+
+```text
+Internet
+  -> HTTPS reverse proxy
+  -> 127.0.0.1:6080 noVNC
+  -> Chromium inside Docker
+```
+
+Do not expose port `5900`. It is the internal VNC port and should stay reachable only inside
+the container.
+
+### Manual Login Handoff
+
+When remote viewer metadata is enabled and a login page is detected, tool responses may include:
+
+```json
+{
+  "login_required": true,
+  "manual_login_url": "https://browser.example.com/vnc.html?instance_id=...",
+  "remote_browser_access": {
+    "type": "novnc",
+    "expires_in_seconds": 900
+  }
+}
+```
+
+An agent can send `manual_login_url` to the user over Telegram, chat, email, or any other
+channel. The user logs in through noVNC, then the agent calls `confirm_manual_login` with the
+same `instance_id`.
+
+### MCP HTTP Headers
+
+`GET http://localhost:8000/mcp` may return `406 Not Acceptable`. That is expected: FastMCP's
+HTTP transport requires clients to accept JSON and server-sent events.
+
+Use:
+
+```text
+Accept: application/json, text/event-stream
+Content-Type: application/json
+```
+
+### Environment Variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `PORT` | `8000` | MCP HTTP port inside the container |
 | `GHOST_ENABLE_NOVNC` | `true` | Starts Xvfb, x11vnc, and noVNC inside the container |
 | `GHOST_REMOTE_VIEWER_ENABLED` | `true` in compose | Adds remote login metadata to pending-login responses |
 | `GHOST_REMOTE_VIEWER_PUBLIC_URL` | `http://localhost:6080` | Public URL agents should send to the user |
 | `GHOST_REMOTE_VIEWER_TOKEN_SECRET` | `change-me-local-only` | Signs manual-login URLs for downstream gateways |
 | `GHOST_REMOTE_VIEWER_TOKEN_TTL_SECONDS` | `900` | Expiration window for generated login URLs |
+| `STEALTH_BROWSER_STORAGE_FILE` | `/data/storage/instances.json` | Persistent runtime instance metadata |
 
-The compose file binds noVNC to `127.0.0.1:6080` by default. On a VPS, expose it through
-HTTPS with a reverse proxy and authentication; do not publish the raw VNC port.
+### Verified Smoke Test
+
+The Docker runtime was verified with:
+
+```bash
+docker compose config
+docker compose build
+docker compose up -d
+docker compose ps
+```
+
+The MCP server exposed all `225` tools, `spawn_browser(headless=false)` created a visible
+Chromium session in noVNC, `navigate` loaded `https://example.com`, and `take_screenshot`
+saved an image under `/data/output`.
 
 ---
 
