@@ -7,12 +7,19 @@ server-side directory — that would expose cloned content to the server
 and accumulate disk garbage.
 """
 
+import asyncio
 import json
+import mimetypes
+import re
 import sys
 import uuid
+from base64 import b64decode
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
+from urllib.parse import unquote, urljoin, urlparse
+
+import httpx
 
 try:
     from core.debug_logger import debug_logger
@@ -83,6 +90,171 @@ class FileBasedElementCloner:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         return str(file_path.absolute())
+
+    def _safe_filename(self, url: str, content_type: Optional[str], index: int) -> str:
+        parsed = urlparse(url)
+        name = unquote(Path(parsed.path).name)
+        if not name or name in {"/", ".", ".."}:
+            extension = mimetypes.guess_extension((content_type or "").split(";")[0].strip())
+            name = f"asset_{index}{extension or '.bin'}"
+        name = re.sub(r"[^A-Za-z0-9._-]+", "_", name).strip("._")
+        if not Path(name).suffix and content_type:
+            extension = mimetypes.guess_extension(content_type.split(";")[0].strip())
+            if extension:
+                name = f"{name}{extension}"
+        return name or f"asset_{index}.bin"
+
+    def _unique_path(self, directory: Path, filename: str, overwrite: bool) -> Path:
+        target = directory / filename
+        if overwrite or not target.exists():
+            return target
+        stem = target.stem
+        suffix = target.suffix
+        counter = 2
+        while True:
+            candidate = directory / f"{stem}_{counter}{suffix}"
+            if not candidate.exists():
+                return candidate
+            counter += 1
+
+    def _category_for_loaded_resource(self, url: str, initiator_type: str) -> Optional[str]:
+        suffix = Path(urlparse(url).path.lower()).suffix
+        initiator = (initiator_type or "").lower()
+
+        if suffix == ".css":
+            return "stylesheets"
+        if suffix in {".woff", ".woff2", ".ttf", ".otf", ".eot"}:
+            return "fonts"
+        if suffix in {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".avif", ".ico"}:
+            return "images"
+        if suffix in {".mp4", ".webm", ".mov", ".m4v", ".mp3", ".wav", ".ogg", ".aac"}:
+            return "media"
+        if initiator in {"img", "image", "css"}:
+            return "images"
+        if initiator in {"link"}:
+            return "stylesheets"
+        if initiator in {"video", "audio"}:
+            return "media"
+        return None
+
+    def _iter_loaded_resource_urls(
+        self,
+        asset_data: Dict[str, Any],
+        include_images: bool,
+        include_fonts: bool,
+        include_media: bool,
+        include_stylesheets: bool,
+    ):
+        seen = set()
+        for resource in asset_data.get("loaded_resources", []) or []:
+            url = resource.get("url")
+            if not url:
+                continue
+            category = self._category_for_loaded_resource(url, resource.get("initiator_type", ""))
+            if not category:
+                continue
+            if category == "images" and not include_images:
+                continue
+            if category == "fonts" and not include_fonts:
+                continue
+            if category == "stylesheets" and not include_stylesheets:
+                continue
+            if category == "media" and not include_media:
+                continue
+            key = (category, url)
+            if key in seen:
+                continue
+            seen.add(key)
+            yield {"category": category, "url": url, "source": resource}
+
+    def _count_asset_candidates(self, asset_data: Dict[str, Any]) -> int:
+        total = 0
+        for key in (
+            "images",
+            "background_images",
+            "icons",
+            "stylesheets",
+            "videos",
+            "audio",
+            "loaded_resources",
+        ):
+            value = asset_data.get(key, [])
+            if isinstance(value, list):
+                total += len(value)
+        fonts = asset_data.get("fonts", {})
+        if isinstance(fonts, dict) and isinstance(fonts.get("font_faces"), list):
+            total += len(fonts["font_faces"])
+        return total
+
+    async def _download_asset(
+        self,
+        client: httpx.AsyncClient,
+        asset: Dict[str, Any],
+        output_dir: Path,
+        base_url: str,
+        index: int,
+        overwrite: bool,
+    ) -> Dict[str, Any]:
+        category = asset["category"]
+        raw_url = asset["url"]
+        resolved_url = urljoin(base_url, raw_url)
+        category_dir = output_dir / category
+        category_dir.mkdir(parents=True, exist_ok=True)
+
+        if resolved_url.startswith("data:"):
+            header, _, payload = resolved_url.partition(",")
+            is_base64 = ";base64" in header
+            content_type = header[5:].split(";")[0] if header.startswith("data:") else None
+            content = b64decode(payload) if is_base64 else unquote(payload).encode("utf-8")
+            filename = self._safe_filename(f"asset_{index}", content_type, index)
+            file_path = self._unique_path(category_dir, filename, overwrite)
+            file_path.write_bytes(content)
+            return {
+                "url": raw_url[:120],
+                "resolved_url": "data:",
+                "category": category,
+                "file_path": str(file_path.absolute()),
+                "content_type": content_type,
+                "size": len(content),
+                "status": "downloaded",
+            }
+
+        parsed = urlparse(resolved_url)
+        if parsed.scheme not in {"http", "https"}:
+            return {
+                "url": raw_url,
+                "resolved_url": resolved_url,
+                "category": category,
+                "status": "skipped",
+                "error": f"Unsupported URL scheme: {parsed.scheme or 'relative'}",
+            }
+
+        response = await client.get(resolved_url, follow_redirects=True)
+        response.raise_for_status()
+        content_type = response.headers.get("content-type")
+        if (content_type or "").split(";")[0].strip().lower() == "text/html":
+            return {
+                "url": raw_url,
+                "resolved_url": str(response.url),
+                "category": category,
+                "content_type": content_type,
+                "status_code": response.status_code,
+                "status": "skipped",
+                "error": "Skipped HTML document; loaded-resource downloads only keep asset files.",
+            }
+        filename = self._safe_filename(str(response.url), content_type, index)
+        file_path = self._unique_path(category_dir, filename, overwrite)
+        file_path.write_bytes(response.content)
+        return {
+            "url": raw_url,
+            "resolved_url": str(response.url),
+            "category": category,
+            "file_path": str(file_path.absolute()),
+            "content_type": content_type,
+            "size": len(response.content),
+            "status_code": response.status_code,
+            "status": "downloaded",
+        }
 
     # ------------------------------------------------------------------
     # Public extraction methods
@@ -500,6 +672,179 @@ class FileBasedElementCloner:
             }
         except Exception as e:
             debug_logger.log_error("file_element_cloner", "extract_assets_to_file", e)
+            return {"error": str(e)}
+
+    async def download_element_assets_to_folder(
+        self,
+        tab,
+        selector: str,
+        output_dir: str,
+        include_images: bool = True,
+        include_backgrounds: bool = True,
+        include_fonts: bool = True,
+        include_icons: bool = True,
+        include_media: bool = True,
+        include_stylesheets: bool = True,
+        wait_for_assets_seconds: float = 5.0,
+        overwrite: bool = False,
+        timeout: float = 20.0,
+        max_assets: int = 200,
+        instance_id: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Extract asset URLs for an element, download them, and save a manifest.
+
+        Args:
+            tab: Browser tab object.
+            selector: CSS selector for the element.
+            output_dir: Destination folder for assets and manifest.json.
+            include_images: Download img/srcset URLs.
+            include_backgrounds: Download CSS background images.
+            include_fonts: Download readable @font-face URLs.
+            include_icons: Download page icons.
+            include_media: Download video/audio sources and posters.
+            include_stylesheets: Download linked CSS files.
+            Only resources actually loaded by the browser are downloaded.
+            wait_for_assets_seconds: Retry extraction for this many seconds if no assets are ready.
+            overwrite: Replace files with the same name instead of creating suffixed names.
+            timeout: Per-request timeout in seconds.
+            max_assets: Maximum number of assets to attempt.
+            instance_id: Unused — kept for API compatibility.
+
+        Returns:
+            Dict with manifest_path, download counts, and failed/skipped entries.
+        """
+        try:
+            if not output_dir:
+                raise ValueError("output_dir is required")
+            if max_assets < 1:
+                raise ValueError("max_assets must be at least 1")
+
+            destination = Path(output_dir)
+            destination.mkdir(parents=True, exist_ok=True)
+
+            asset_data = {}
+            best_asset_data = {}
+            best_asset_count = -1
+            stable_count = 0
+            attempts = max(1, int(wait_for_assets_seconds) + 1)
+            for attempt in range(attempts):
+                asset_data = await element_cloner.extract_element_assets(
+                    tab,
+                    selector=selector,
+                    include_images=include_images,
+                    include_backgrounds=include_backgrounds,
+                    include_fonts=include_fonts,
+                    fetch_external=False,
+                )
+                if "error" in asset_data:
+                    break
+                asset_count = self._count_asset_candidates(asset_data)
+                if asset_count > best_asset_count:
+                    best_asset_data = asset_data
+                    best_asset_count = asset_count
+                    stable_count = 0
+                elif asset_count == best_asset_count and asset_count > 0:
+                    stable_count += 1
+                if stable_count >= 2 and attempt >= 2:
+                    asset_data = best_asset_data
+                    break
+                if attempt < attempts - 1:
+                    await asyncio.sleep(1)
+            if best_asset_count > self._count_asset_candidates(asset_data):
+                asset_data = best_asset_data
+            if "error" in asset_data:
+                return asset_data
+
+            assets = list(
+                self._iter_loaded_resource_urls(
+                    asset_data,
+                    include_images=include_images or include_backgrounds or include_icons,
+                    include_fonts=include_fonts,
+                    include_media=include_media,
+                    include_stylesheets=include_stylesheets,
+                )
+            )
+            if not include_icons:
+                assets = [asset for asset in assets if asset["category"] != "icons"]
+
+            manifest = {
+                "selector": selector,
+                "url": getattr(tab, "url", "unknown"),
+                "timestamp": datetime.now().isoformat(),
+                "output_dir": str(destination.absolute()),
+                "max_assets": max_assets,
+                "download_mode": "loaded",
+                "downloads": [],
+                "failures": [],
+                "skipped": [],
+            }
+
+            async with httpx.AsyncClient(
+                timeout=timeout,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/120.0.0.0 Safari/537.36"
+                    )
+                },
+            ) as client:
+                manifest["requested_assets"] = len(assets)
+                limited_assets = assets[:max_assets]
+
+                for index, asset in enumerate(limited_assets, start=1):
+                    try:
+                        result = await self._download_asset(
+                            client,
+                            asset,
+                            output_dir=destination,
+                            base_url=getattr(tab, "url", ""),
+                            index=index,
+                            overwrite=overwrite,
+                        )
+                        if result.get("status") == "downloaded":
+                            manifest["downloads"].append(result)
+                        elif result.get("status") == "skipped":
+                            manifest["skipped"].append(result)
+                        else:
+                            manifest["failures"].append(result)
+                    except Exception as e:
+                        manifest["failures"].append(
+                            {
+                                "url": asset.get("url"),
+                                "category": asset.get("category"),
+                                "status": "failed",
+                                "error": str(e),
+                            }
+                        )
+
+            manifest["summary"] = {
+                "downloaded_count": len(manifest["downloads"]),
+                "failed_count": len(manifest["failures"]),
+                "skipped_count": len(manifest["skipped"]),
+                "skipped_by_limit": max(0, len(assets) - len(limited_assets)),
+                "categories": {},
+            }
+            for item in manifest["downloads"]:
+                category = item["category"]
+                manifest["summary"]["categories"][category] = (
+                    manifest["summary"]["categories"].get(category, 0) + 1
+                )
+
+            manifest_path = destination / "manifest.json"
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, indent=2, ensure_ascii=False)
+
+            return {
+                "manifest_path": str(manifest_path.absolute()),
+                "output_dir": str(destination.absolute()),
+                "selector": selector,
+                "url": getattr(tab, "url", "unknown"),
+                "summary": manifest["summary"],
+            }
+        except Exception as e:
+            debug_logger.log_error("file_element_cloner", "download_assets_to_folder", e)
             return {"error": str(e)}
 
     async def extract_related_files_to_file(

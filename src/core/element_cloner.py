@@ -68,7 +68,7 @@ class ElementCloner:
 
     def _load_js_file(self, filename: str, selector: str, options: dict) -> str:
         """Load and prepare JavaScript file with template substitution"""
-        js_dir = Path(__file__).parent / "js"
+        js_dir = Path(__file__).parent.parent / "js"
         js_file = js_dir / filename
 
         if not js_file.exists():
@@ -90,29 +90,33 @@ class ElementCloner:
         return js_code
 
     def _convert_nodriver_result(self, data):
-        """Convert nodriver's array format back to dict"""
+        """Convert nodriver's remote-object shape back to plain Python values."""
+        if isinstance(data, dict) and "type" in data:
+            value_type = data.get("type")
+            if value_type == "string":
+                return data.get("value", "")
+            if value_type == "number":
+                return data.get("value", 0)
+            if value_type == "boolean":
+                return data.get("value", False)
+            if value_type == "null":
+                return None
+            if value_type in {"array", "object"}:
+                return self._convert_nodriver_result(data.get("value", []))
+            return data.get("value")
+
+        if isinstance(data, dict):
+            return {key: self._convert_nodriver_result(value) for key, value in data.items()}
+
         if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
             result = {}
             for item in data:
                 if isinstance(item, list) and len(item) == 2:
                     key = item[0]
-                    value_obj = item[1]
-                    if isinstance(value_obj, dict) and "type" in value_obj:
-                        if value_obj["type"] == "string":
-                            result[key] = value_obj.get("value", "")
-                        elif value_obj["type"] == "number":
-                            result[key] = value_obj.get("value", 0)
-                        elif value_obj["type"] == "null":
-                            result[key] = None
-                        elif value_obj["type"] == "array":
-                            result[key] = value_obj.get("value", [])
-                        elif value_obj["type"] == "object":
-                            result[key] = self._convert_nodriver_result(value_obj.get("value", []))
-                        else:
-                            result[key] = value_obj.get("value")
-                    else:
-                        result[key] = value_obj
+                    result[key] = self._convert_nodriver_result(item[1])
             return result
+        if isinstance(data, list):
+            return [self._convert_nodriver_result(item) for item in data]
         return data
 
     async def extract_element_structure(
@@ -344,7 +348,7 @@ class ElementCloner:
             if not selector:
                 return {"error": "Selector is required"}
 
-            js_dir = Path(__file__).parent / "js"
+            js_dir = Path(__file__).parent.parent / "js"
             js_file = js_dir / "extract_assets.js"
 
             if not js_file.exists():
@@ -364,9 +368,7 @@ class ElementCloner:
             asset_data = await tab.evaluate(js_code)
             if hasattr(asset_data, "exception_details"):
                 return {"error": f"JavaScript error: {asset_data.exception_details}"}
-            elif isinstance(asset_data, dict):
-                pass
-            elif isinstance(asset_data, list):
+            elif isinstance(asset_data, (dict, list)):
                 # Convert nodriver's array format back to dict
                 asset_data = self._convert_nodriver_result(asset_data)
             else:
@@ -432,7 +434,7 @@ class ElementCloner:
             Dict[str, Any]: Dict with related file data
         """
         try:
-            js_dir = Path(__file__).parent / "js"
+            js_dir = Path(__file__).parent.parent / "js"
             js_file = js_dir / "extract_related_files.js"
 
             if not js_file.exists():

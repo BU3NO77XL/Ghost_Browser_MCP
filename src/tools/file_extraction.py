@@ -300,4 +300,65 @@ def register(mcp, section_tool, deps):
             instance_id=instance_id,
         )
 
+    @section_tool("file-extraction")
+    async def download_element_assets_to_folder(
+        instance_id: str,
+        selector: str,
+        output_dir: str,
+        include_images: bool = True,
+        include_backgrounds: bool = True,
+        include_fonts: bool = True,
+        include_icons: bool = True,
+        include_media: bool = True,
+        include_stylesheets: bool = True,
+        wait_for_assets_seconds: float = 5.0,
+        overwrite: bool = False,
+        timeout: float = 20.0,
+        max_assets: int = 200,
+    ) -> Dict[str, Any]:
+        """
+        Download images, backgrounds, icons, fonts, and media related to an element.
+
+        Args:
+            instance_id (str): Browser instance ID.
+            selector (str): CSS selector for the element.
+            output_dir (str): Destination folder for downloaded files.
+            include_images (bool): Download img/srcset URLs.
+            include_backgrounds (bool): Download CSS background images.
+            include_fonts (bool): Download readable @font-face URLs.
+            include_icons (bool): Download page icons.
+            include_media (bool): Download video/audio sources and posters.
+            include_stylesheets (bool): Download linked CSS files.
+            Only resources actually loaded by the browser are downloaded.
+            wait_for_assets_seconds (float): Retry while async page assets are still loading.
+            overwrite (bool): Overwrite matching filenames instead of suffixing.
+            timeout (float): Per-request timeout in seconds.
+            max_assets (int): Maximum number of assets to attempt.
+
+        Returns:
+            Dict[str, Any]: manifest_path, output_dir, and download summary.
+        """
+        guard = await check_pending_login_guard(instance_id)
+        if guard:
+            return guard
+        tab = await browser_manager.get_tab(instance_id)
+        if not tab:
+            raise Exception(f"Instance not found: {instance_id}")
+        return await file_based_element_cloner.download_element_assets_to_folder(
+            tab,
+            selector=selector,
+            output_dir=output_dir,
+            include_images=include_images,
+            include_backgrounds=include_backgrounds,
+            include_fonts=include_fonts,
+            include_icons=include_icons,
+            include_media=include_media,
+            include_stylesheets=include_stylesheets,
+            wait_for_assets_seconds=wait_for_assets_seconds,
+            overwrite=overwrite,
+            timeout=timeout,
+            max_assets=max_assets,
+            instance_id=instance_id,
+        )
+
     return {k: v for k, v in locals().items() if callable(v) and not k.startswith("_")}
