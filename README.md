@@ -26,6 +26,7 @@ Bypass Cloudflare, antibot systems, and social media blocks with real browser in
 
 - [Demo](#demo)
 - [Features](#features)
+- [How It Fits Together](#how-it-fits-together)
 - [Quickstart](#quickstart)
 - [Development vs Quick Reproduction](#development-vs-quick-reproduction)
 - [Docker Runtime](#docker-runtime)
@@ -70,7 +71,60 @@ Bypass Cloudflare, antibot systems, and social media blocks with real browser in
 
 ---
 
+## How It Fits Together
+
+Think of Ghost Browser as three simple pieces:
+
+```text
+Your AI agent
+  -> talks to Ghost Browser through MCP
+  -> Ghost Browser controls Chrome/Chromium
+  -> Chrome opens websites, clicks, extracts data, screenshots, assets, and network info
+```
+
+The only decision you need to make first is **how Ghost Browser should run**.
+
+If you only remember one thing:
+
+```text
+I want to change Ghost Browser code -> use local source mode.
+I only want to run Ghost Browser     -> use Docker image mode.
+```
+
+| You want to... | Use this mode | MCP connection |
+|----------------|---------------|----------------|
+| edit the code, add tools, debug internals | Local source mode | `stdio` with local Python paths |
+| run it quickly without touching source code | Docker image mode | `http` to `http://localhost:8000/mcp` |
+| host it on a VPS for remote agents | Docker image mode + reverse proxy | `http` to `https://mcp.example.com/mcp` |
+
+The words used in this README mean:
+
+- **MCP server**: the tool server that exposes Ghost Browser tools to an AI agent.
+- **MCP client**: the app/agent that calls those tools, such as Claude, Cursor, Kiro, OpenClaw, or another MCP-compatible agent.
+- **`stdio` mode**: the MCP client starts Ghost Browser by running a local command, usually Python + `src/server.py`.
+- **`http` mode**: Ghost Browser is already running somewhere, and the MCP client connects to its URL.
+- **Docker**: a packaged runtime that includes Python dependencies, Chrome, Xvfb, and noVNC.
+- **noVNC**: a browser-based remote screen so you can see/control Chrome inside Docker.
+- **manual login handoff**: when an agent pauses and sends you a noVNC link so you can log in manually.
+
+So the flow is:
+
+```text
+1. Choose local source mode or Docker mode.
+2. Start Ghost Browser.
+3. Add the matching MCP template to your client.
+4. Ask the agent to use ghost_browser.
+5. If login is needed, open the browser/noVNC link, log in, and let the agent continue.
+```
+
+---
+
 ## Quickstart
+
+This quickstart is for **local source mode**. Use it when you have the repository on your
+machine and want the MCP client to start Ghost Browser with `stdio`.
+
+If you want the fastest Docker-only path, skip to [Quick Reproduction Mode](#quick-reproduction-mode).
 
 ### 1. Install uv
 
@@ -88,6 +142,8 @@ Or see the official installation docs: https://docs.astral.sh/uv/getting-started
 
 ### 2. Clone and sync
 
+Download the source code and install the Python dependencies:
+
 ```bash
 git clone <your-fork-url> ghost_browser
 cd ghost_browser
@@ -97,6 +153,8 @@ uv sync
 This creates a local `.venv` with the dependencies declared in `pyproject.toml`.
 
 ### 3. Add to your MCP client
+
+In local source mode, the MCP client must know where Python and `src/server.py` are located.
 
 **Claude Code CLI (recommended):**
 
@@ -180,12 +238,27 @@ Restart your MCP client and ask your agent:
 
 ## Development vs Quick Reproduction
 
-There are two recommended ways to run Ghost Browser, depending on what you need.
+There are two recommended ways to run Ghost Browser. Pick one before copying commands.
+
+```text
+Do you want to change the code?
+  yes -> Development Mode
+  no  -> Quick Reproduction Mode
+```
 
 ### Development Mode
 
 Use this when you want to edit the source code, run tests, change tools, debug internals, or
 contribute patches.
+
+In this mode:
+
+```text
+You keep the source code locally.
+You install Python dependencies with uv.
+Your MCP client usually connects through stdio.
+You edit files, run tests, commit changes, and push.
+```
 
 ```bash
 git clone <your-fork-url> ghost_browser
@@ -219,6 +292,16 @@ Use development mode when:
 
 Use this when you only want to run the latest packaged browser server quickly on a local
 machine or VPS, without cloning the source code or installing Python dependencies.
+
+In this mode:
+
+```text
+You install Docker Compose.
+You download a compose file.
+Docker pulls the ready-made Ghost Browser image.
+Your MCP client connects through HTTP.
+You do not need local Python paths.
+```
 
 After the Docker image is published, the workflow will be:
 
