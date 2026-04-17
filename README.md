@@ -404,15 +404,26 @@ Use quick reproduction mode when:
 
 ### Docker Image Publishing
 
-The repository is intended to publish a fresh Docker image from CI after pushes to `main`.
-Once that workflow is enabled, every accepted code change can produce a new image such as:
+The CI workflow builds and smoke-tests the Docker image after the existing lint, security,
+unit, integration, and E2E jobs pass. On pushes to `main`, it publishes:
 
 ```text
 ghcr.io/bu3no77xl/ghost_browser:latest
 ghcr.io/bu3no77xl/ghost_browser:<commit-sha>
 ```
 
-Until image publishing is configured in CI, use local build mode:
+The Docker job checks:
+
+```text
+docker compose config
+docker compose -f docker-compose.image.yml config
+Docker image build
+noVNC HTTP availability
+MCP HTTP initialize
+tools/list exposes 225 tools
+```
+
+For local development before pushing, use local build mode:
 
 ```bash
 docker compose up -d --build
