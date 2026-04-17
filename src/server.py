@@ -87,9 +87,7 @@ _TOOL_SECTIONS = {
 
 _MINIMAL_DISABLED_SECTIONS = set(_TOOL_SECTIONS) - _CORE_SECTIONS
 
-_DISABLE_FLAG_TO_SECTION = {
-    f"--disable-{section}": section for section in _TOOL_SECTIONS
-}
+_DISABLE_FLAG_TO_SECTION = {f"--disable-{section}": section for section in _TOOL_SECTIONS}
 
 
 def _disabled_sections_from_args(argv: List[str]) -> set[str]:
