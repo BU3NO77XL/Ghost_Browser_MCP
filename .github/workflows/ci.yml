@@ -155,12 +155,13 @@ jobs:
           sudo apt-get install -y \
             libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
             libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
-            libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64
+            libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64 \
+            xvfb xauth
 
       - name: Run integration tests
         run: |
           mkdir -p reports
-          uv run python -m pytest \
+          xvfb-run -a uv run python -m pytest \
             tests/integration/test_browser_tools.py \
             tests/integration/test_element_tools.py \
             tests/integration/test_network_tools.py \
@@ -207,12 +208,13 @@ jobs:
           sudo apt-get install -y \
             libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
             libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
-            libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64
+            libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64 \
+            xvfb xauth
 
       - name: Run E2E tests
         run: |
           mkdir -p reports
-          uv run python -m pytest \
+          xvfb-run -a uv run python -m pytest \
             tests/e2e/test_mcp_interface.py \
             tests/e2e/test_integration_full.py \
             tests/e2e/test_final_smoke.py \
