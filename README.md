@@ -315,18 +315,54 @@ In this mode:
 
 ```text
 You install Docker Compose.
-You download a compose file.
+Docker Compose reads the runtime file from GitHub, or you download that one small file.
 Docker pulls the ready-made Ghost Browser image.
 Your MCP client connects through HTTP.
 You do not need local Python paths.
 ```
 
-After the Docker image is published, the workflow will be:
+Fastest path, streaming the compose file from GitHub without saving it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BU3NO77XL/ghost_browser/main/docker-compose.image.yml | docker compose -f - up -d
+```
+
+Windows PowerShell:
+
+```powershell
+(Invoke-WebRequest -Uri https://raw.githubusercontent.com/BU3NO77XL/ghost_browser/main/docker-compose.image.yml -UseBasicParsing).Content | docker compose -f - up -d
+```
+
+To stop it, stream the same compose file again:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BU3NO77XL/ghost_browser/main/docker-compose.image.yml | docker compose -f - down
+```
+
+Windows PowerShell:
+
+```powershell
+(Invoke-WebRequest -Uri https://raw.githubusercontent.com/BU3NO77XL/ghost_browser/main/docker-compose.image.yml -UseBasicParsing).Content | docker compose -f - down
+```
+
+Some Docker Compose versions do not handle `-f https://...` URLs consistently across
+operating systems. Streaming with `-f -` avoids that path issue. If you prefer to keep the
+runtime file locally, use the universal fallback:
 
 ```bash
 mkdir ghost_browser_runtime
 cd ghost_browser_runtime
 curl -O https://raw.githubusercontent.com/BU3NO77XL/ghost_browser/main/docker-compose.image.yml
+docker compose -f docker-compose.image.yml pull
+docker compose -f docker-compose.image.yml up -d
+```
+
+On Windows PowerShell, the fallback is:
+
+```powershell
+mkdir ghost_browser_runtime
+cd ghost_browser_runtime
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/BU3NO77XL/ghost_browser/main/docker-compose.image.yml -OutFile docker-compose.image.yml
 docker compose -f docker-compose.image.yml pull
 docker compose -f docker-compose.image.yml up -d
 ```
