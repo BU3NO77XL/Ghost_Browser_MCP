@@ -120,7 +120,8 @@ class TestFinalSmoke:
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
                 spath = f.name
             shot = await take_screenshot(iid, file_path=spath)
-            assert isinstance(shot, str)
+            # Returns dict with file_path key when saving to disk
+            assert isinstance(shot, dict) and "file_path" in shot
             assert Path(spath).exists() and Path(spath).stat().st_size > 0
             Path(spath).unlink()
             print("    OK")

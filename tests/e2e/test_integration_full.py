@@ -284,7 +284,9 @@ class TestScreenshot:
             path = f.name
 
         result = await take_screenshot(iid, file_path=path)
-        assert isinstance(result, str)
+        # Returns dict with file_path key when saving to disk
+        assert isinstance(result, dict)
+        assert "file_path" in result
         assert Path(path).exists()
         assert Path(path).stat().st_size > 0
         Path(path).unlink()
