@@ -72,6 +72,26 @@ def _map_host_path_to_container(host_path: str) -> Optional[Path]:
 
     normalized_root = _norm_host(host_root)
     normalized_path = _norm_host(host_path)
+    
+    # For Windows paths, ensure we handle drive letters correctly
+    # Extract drive letter if present
+    root_drive = None
+    path_drive = None
+    
+    if _is_windows_abs(normalized_root):
+        root_parts = normalized_root.split("/", 1)
+        if len(root_parts) > 0 and len(root_parts[0]) >= 2 and root_parts[0][1] == ":":
+            root_drive = root_parts[0].lower()
+    
+    if _is_windows_abs(normalized_path):
+        path_parts = normalized_path.split("/", 1)
+        if len(path_parts) > 0 and len(path_parts[0]) >= 2 and path_parts[0][1] == ":":
+            path_drive = path_parts[0].lower()
+    
+    # If both have drives and they don't match, this path is not under host_root
+    if root_drive and path_drive and root_drive != path_drive:
+        return None
+    
     root_cmp = normalized_root.lower() if _is_windows_abs(normalized_root) else normalized_root
     path_cmp = normalized_path.lower() if _is_windows_abs(normalized_path) else normalized_path
 
@@ -112,38 +132,62 @@ def resolve_output_path(output_path: str, client_roots: Optional[Iterable[str]] 
     workspace = get_client_workspace()
     raw = str(output_path).replace("\\", "/")
     client_root = _first_client_root(client_roots)
+    
+    # Debug logging for path resolution
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Resolving output_path: {output_path}")
+    logger.debug(f"  raw normalized: {raw}")
+    logger.debug(f"  workspace: {workspace}")
+    logger.debug(f"  client_root: {client_root}")
+    logger.debug(f"  GHOST_HOST_ROOT: {get_host_root()}")
+    logger.debug(f"  GHOST_HOST_ROOT_MOUNT: {get_host_root_mount()}")
 
     mapped_absolute = _map_host_path_to_container(raw)
     if mapped_absolute is not None:
+        logger.debug(f"  -> mapped to host_root: {mapped_absolute}")
         return mapped_absolute
 
     if raw.startswith(f"{workspace.as_posix()}/") or raw == workspace.as_posix():
         relative = raw.removeprefix(workspace.as_posix()).lstrip("/")
         mapped_workspace = _map_relative_to_client_root(relative, client_root)
         if mapped_workspace is not None:
+            logger.debug(f"  -> mapped via client_root: {mapped_workspace}")
             return mapped_workspace
+        logger.debug(f"  -> using workspace path: {raw}")
         return Path(raw)
 
     if raw.startswith("/app/"):
         mapped_app = _map_relative_to_client_root(raw.removeprefix("/app/"), client_root)
         if mapped_app is not None:
+            logger.debug(f"  -> mapped /app/ via client_root: {mapped_app}")
             return mapped_app
-        return workspace / raw.removeprefix("/app/")
+        result = workspace / raw.removeprefix("/app/")
+        logger.debug(f"  -> /app/ to workspace: {result}")
+        return result
 
     if raw.startswith("/data/output/"):
         mapped_data = _map_relative_to_client_root(raw.removeprefix("/data/output/"), client_root)
         if mapped_data is not None:
+            logger.debug(f"  -> mapped /data/output/ via client_root: {mapped_data}")
             return mapped_data
-        return workspace / raw.removeprefix("/data/output/")
+        result = workspace / raw.removeprefix("/data/output/")
+        logger.debug(f"  -> /data/output/ to workspace: {result}")
+        return result
 
     if raw.startswith("/"):
-        return workspace / raw.lstrip("/")
+        result = workspace / raw.lstrip("/")
+        logger.debug(f"  -> absolute path to workspace: {result}")
+        return result
 
     mapped_relative = _map_relative_to_client_root(raw, client_root)
     if mapped_relative is not None:
+        logger.debug(f"  -> mapped relative via client_root: {mapped_relative}")
         return mapped_relative
 
-    return workspace / raw
+    result = workspace / raw
+    logger.debug(f"  -> fallback to workspace: {result}")
+    return result
 
 
 def output_path_metadata(path: Path) -> Dict[str, str]:
