@@ -284,7 +284,7 @@ debugger_handler = DebuggerHandler()
 profiler_handler = ProfilerHandler()
 heapprofiler_handler = HeapProfilerHandler()
 
-# Dependency container passed to tool modules
+# Dependency injection dict passed to tool modules
 _deps = {
     "browser_manager": browser_manager,
     "network_interceptor": network_interceptor,
@@ -449,18 +449,6 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Ghost Browser MCP Server with 225 tools")
-    parser.add_argument(
-        "--transport", choices=["stdio", "http"], default="stdio", help="Transport protocol to use"
-    )
-    parser.add_argument(
-        "--port", type=int, default=int(os.getenv("PORT", 8000)), help="Port for HTTP transport"
-    )
-    parser.add_argument(
-        "--host",
-        # MCP HTTP transport must bind all interfaces in container deployments.
-        default="0.0.0.0",  # nosec B104
-        help="Host for HTTP transport",
-    )
     for section, (description, _) in _TOOL_SECTIONS.items():
         parser.add_argument(
             f"--disable-{section}",
@@ -495,7 +483,4 @@ if __name__ == "__main__":
     if DISABLED_SECTIONS:
         print(f"Disabled tool sections: {', '.join(sorted(DISABLED_SECTIONS))}", file=sys.stderr)
 
-    if args.transport == "http":
-        mcp.run(transport="http", host=args.host, port=args.port)
-    else:
-        mcp.run(transport="stdio")
+    mcp.run(transport="stdio")
