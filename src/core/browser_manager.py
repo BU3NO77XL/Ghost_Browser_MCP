@@ -76,7 +76,7 @@ class BrowserManager:
                 f"Platform: {platform_info['system']} | Root: {platform_info['is_root']} | Container: {platform_info['is_container']} | CI: {platform_info['is_ci']} | Headless: {effective_headless} | Sandbox: {effective_sandbox} | Browser: {browser_type} ({browser_executable})",
             )
 
-            max_start_attempts = 3 if platform_info["is_ci"] or platform_info["is_container"] else 1
+            max_start_attempts = 5 if platform_info["is_ci"] or platform_info["is_container"] else 1
             browser = None
             for attempt in range(1, max_start_attempts + 1):
                 config = uc.Config(
@@ -99,7 +99,7 @@ class BrowserManager:
                         "spawn_browser",
                         f"Browser start attempt {attempt}/{max_start_attempts} failed: {start_error}. Retrying...",
                     )
-                    await asyncio.sleep(float(attempt))
+                    await asyncio.sleep(float(min(attempt * 2, 8)))
 
             tab = browser.main_tab
 
