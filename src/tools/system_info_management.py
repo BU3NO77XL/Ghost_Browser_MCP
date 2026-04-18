@@ -48,7 +48,8 @@ def register(mcp, section_tool, deps):
             info["output_path_guidance"] = (
                 "In Docker mode, save artifacts under /workspace or pass normal paths like "
                 "/app/name/file.html; they will be redirected to the client-visible "
-                "workspace mount."
+                "workspace mount. Files in this mounted workspace are user-facing outputs "
+                "and are not automatically deleted by the server cleanup sweep."
             )
         else:
             info["container"] = False

@@ -728,6 +728,11 @@ and `print_to_pdf` write there in Docker mode. If an agent passes `/app/govbr/in
 Browser redirects it to `/workspace/govbr/index.html` and returns the host hint
 `ghost_browser_mcp_output/govbr/index.html`.
 
+Files in `ghost_browser_mcp_output` are treated as user-facing outputs, not disposable server
+temp files. Ghost Browser cleans internal temporary files and browser processes, but it does not
+auto-delete this mounted output folder; remove old clone folders from the host when you no longer
+need them.
+
 ### Verified Smoke Test
 
 The Docker runtime was verified with:
