@@ -7,15 +7,10 @@ Use this workflow for pixel-perfect site clones.
    - `navigate`
    - `save_page_html`
    - `take_screenshot`
-   - In Docker mode, write artifacts under `/workspace/...`. Paths such as
-     `/app/site/index.html` are redirected to the client-visible
-     output folder.
-   - Treat `ghost_browser_mcp_output` as the user's output folder. The server
-     does not auto-delete files there, so completed clones remain available for
-     the agent and user to inspect without recreating them through chat.
-   - When the MCP client advertises roots, relative paths and `/workspace/...`
-     paths are mapped to the current client root through `/host_root`. If roots
-     are unavailable, use the returned `client_path_hint`.
+   - Write artifacts to an absolute path inside your local workspace.
+   - Treat the returned `file_path` as the location of the saved file.
+   - When the MCP client advertises roots, use the returned `client_path_hint`
+     to locate files relative to the current project directory.
 
 2. Download local assets before rewriting anything:
    - `download_element_assets_to_folder`
