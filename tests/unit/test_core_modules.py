@@ -355,9 +355,7 @@ class TestOutputPaths:
 
         assert file_uri_to_path("file:///D:/workspace/project") == "D:/workspace/project"
 
-    def test_container_relative_path_maps_to_client_root_when_host_root_mounted(
-        self, monkeypatch
-    ):
+    def test_container_relative_path_maps_to_client_root_when_host_root_mounted(self, monkeypatch):
         from core import output_paths
 
         monkeypatch.setattr(output_paths, "is_running_in_container", lambda: True)
@@ -397,9 +395,7 @@ class TestOutputPaths:
         monkeypatch.setenv("GHOST_HOST_ROOT", "D:\\workspace")
         monkeypatch.setenv("GHOST_HOST_ROOT_MOUNT", "/host_root")
 
-        metadata = output_paths.output_path_metadata(
-            Path("/host_root/project/site/index.html")
-        )
+        metadata = output_paths.output_path_metadata(Path("/host_root/project/site/index.html"))
 
         assert metadata["client_path_hint"] == "D:\\workspace\\project\\site\\index.html"
 

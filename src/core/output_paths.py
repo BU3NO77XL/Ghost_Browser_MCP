@@ -131,9 +131,7 @@ def resolve_output_path(output_path: str, client_roots: Optional[Iterable[str]] 
         return workspace / raw.removeprefix("/app/")
 
     if raw.startswith("/data/output/"):
-        mapped_data = _map_relative_to_client_root(
-            raw.removeprefix("/data/output/"), client_root
-        )
+        mapped_data = _map_relative_to_client_root(raw.removeprefix("/data/output/"), client_root)
         if mapped_data is not None:
             return mapped_data
         return workspace / raw.removeprefix("/data/output/")
@@ -176,6 +174,8 @@ def output_path_metadata(path: Path) -> Dict[str, str]:
         except ValueError:
             pass
 
-        metadata["client_path_hint"] = str(Path(host_root or "ghost_browser_mcp_output") / path.name)
+        metadata["client_path_hint"] = str(
+            Path(host_root or "ghost_browser_mcp_output") / path.name
+        )
         metadata["workspace_mount"] = str(workspace)
     return metadata

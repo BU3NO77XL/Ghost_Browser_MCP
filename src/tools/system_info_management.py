@@ -10,7 +10,12 @@ from fastmcp import Context
 
 from core.client_roots import get_client_root_paths
 from core.login_guard import check_pending_login_guard
-from core.output_paths import file_uri_to_path, get_client_workspace, get_host_root, get_host_root_mount
+from core.output_paths import (
+    file_uri_to_path,
+    get_client_workspace,
+    get_host_root,
+    get_host_root_mount,
+)
 from core.platform_utils import is_running_in_container
 from core.system_info_handler import SystemInfoHandler
 
