@@ -35,19 +35,19 @@ WORKDIR /app
 RUN pip install --no-cache-dir uv
 
 # Copy dependency metadata first for better Docker layer caching
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml ./
 
 # Install Python dependencies into .venv
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --no-dev --no-install-project
 
 # Copy application code
 COPY . .
 
 # Create non-root user for security
 RUN useradd -m -u 1000 mcpuser \
-    && mkdir -p /data/profiles /data/output /data/storage /workspace \
+    && mkdir -p /data/profiles /data/output /data/storage /workspace /host_root \
     && chmod +x /app/docker/entrypoint.sh \
-    && chown -R mcpuser:mcpuser /app /data /workspace
+    && chown -R mcpuser:mcpuser /app /data /workspace /host_root
 USER mcpuser
 
 # Expose MCP HTTP and noVNC ports
@@ -59,6 +59,7 @@ ENV XVFB_WHD=1920x1080x24
 ENV GHOST_ENABLE_NOVNC=true
 ENV GHOST_CLIENT_WORKSPACE=/workspace
 ENV GHOST_CLIENT_WORKSPACE_HOST=ghost_browser_mcp_output
+ENV GHOST_HOST_ROOT_MOUNT=/host_root
 ENV STEALTH_BROWSER_STORAGE_FILE=/data/storage/instances.json
 
 # Health check for FastMCP HTTP server (uses PORT env var).

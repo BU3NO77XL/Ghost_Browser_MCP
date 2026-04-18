@@ -3,6 +3,9 @@
 import asyncio
 from typing import Any, Dict, List, Optional
 
+from fastmcp import Context
+
+from core.client_roots import get_client_root_paths
 from core.login_guard import check_pending_login_guard
 from core.output_paths import output_path_metadata, resolve_output_path
 
@@ -639,6 +642,7 @@ def register(mcp, section_tool, deps):
         scale: float = 1.0,
         paper_width: float = 8.5,
         paper_height: float = 11.0,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Export the current page as PDF via CDP Page.printToPDF.
@@ -680,7 +684,7 @@ def register(mcp, section_tool, deps):
             )
             data = result.get("data", "")
             pdf_bytes = base64.b64decode(data)
-            dest = resolve_output_path(output_path)
+            dest = resolve_output_path(output_path, await get_client_root_paths(ctx))
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(pdf_bytes)
             return {

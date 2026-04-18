@@ -8,6 +8,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from fastmcp import Context
+
+from core.client_roots import get_client_root_paths
 from core.debug_logger import debug_logger
 from core.login_guard import check_pending_login_guard
 from core.output_paths import output_path_metadata, resolve_output_path
@@ -332,6 +335,7 @@ def register(mcp, section_tool, deps):
         output_path: str,
         selector: Optional[str] = None,
         include_doctype: bool = True,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Serialize the current page DOM and save it directly to disk.
@@ -392,7 +396,7 @@ def register(mcp, section_tool, deps):
         if not selector and include_doctype and not html.lstrip().lower().startswith("<!doctype"):
             html = "<!DOCTYPE html>\n" + html
 
-        dest = resolve_output_path(output_path)
+        dest = resolve_output_path(output_path, await get_client_root_paths(ctx))
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(html, encoding="utf-8")
 
@@ -411,6 +415,7 @@ def register(mcp, section_tool, deps):
         full_page: bool = False,
         format: str = "png",
         file_path: Optional[str] = None,
+        ctx: Context = None,
     ) -> Union[str, Dict[str, Any]]:
         """
         Take a screenshot of the page.
@@ -436,7 +441,7 @@ def register(mcp, section_tool, deps):
             raise Exception(f"Instance not found: {instance_id}")
 
         if file_path:
-            save_path = resolve_output_path(file_path)
+            save_path = resolve_output_path(file_path, await get_client_root_paths(ctx))
             save_path.parent.mkdir(parents=True, exist_ok=True)
             await tab.save_screenshot(save_path)
             metadata = output_path_metadata(save_path)

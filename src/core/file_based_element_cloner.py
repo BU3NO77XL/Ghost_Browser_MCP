@@ -64,6 +64,7 @@ class FileBasedElementCloner:
         self,
         data: Dict[str, Any],
         output_path: str,
+        client_roots=None,
     ) -> str:
         """
         Write *data* as JSON to *output_path*.
@@ -86,7 +87,7 @@ class FileBasedElementCloner:
                 "output_path is required. Pass an absolute path inside your workspace so the "
                 "file is written directly there and never stored on the server."
             )
-        file_path = resolve_output_path(output_path)
+        file_path = resolve_output_path(output_path, client_roots)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
@@ -274,6 +275,7 @@ class FileBasedElementCloner:
         include_pseudo: bool = True,
         include_inheritance: bool = False,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Extract element styles and save to *output_path*.
@@ -305,7 +307,7 @@ class FileBasedElementCloner:
                 include_pseudo=include_pseudo,
                 include_inheritance=include_inheritance,
             )
-            file_path = self._save_to_file(style_data, output_path)
+            file_path = self._save_to_file(style_data, output_path, client_roots)
             debug_logger.log_info(
                 "file_element_cloner", "extract_styles_to_file", f"Styles saved to {file_path}"
             )
@@ -332,6 +334,7 @@ class FileBasedElementCloner:
         output_path: str,
         include_children: bool = True,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Extract complete element via comprehensive cloner and save to *output_path*.
@@ -356,7 +359,7 @@ class FileBasedElementCloner:
                 "timestamp": datetime.now().isoformat(),
                 "include_children": include_children,
             }
-            file_path = self._save_to_file(complete_data, output_path)
+            file_path = self._save_to_file(complete_data, output_path, client_roots)
             debug_logger.log_info(
                 "file_element_cloner",
                 "extract_complete_to_file",
@@ -396,6 +399,7 @@ class FileBasedElementCloner:
         include_data_attributes: bool = True,
         max_depth: int = 3,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Extract element structure and save to *output_path*.
@@ -435,7 +439,7 @@ class FileBasedElementCloner:
                     "max_depth": max_depth,
                 },
             }
-            file_path = self._save_to_file(structure_data, output_path)
+            file_path = self._save_to_file(structure_data, output_path, client_roots)
             debug_logger.log_info(
                 "file_element_cloner",
                 "extract_structure_to_file",
@@ -468,6 +472,7 @@ class FileBasedElementCloner:
         include_framework: bool = True,
         analyze_handlers: bool = True,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Extract element events and save to *output_path*.
@@ -507,7 +512,7 @@ class FileBasedElementCloner:
                     "analyze_handlers": analyze_handlers,
                 },
             }
-            file_path = self._save_to_file(event_data, output_path)
+            file_path = self._save_to_file(event_data, output_path, client_roots)
             debug_logger.log_info(
                 "file_element_cloner", "extract_events_to_file", f"Saved events data to {file_path}"
             )
@@ -539,6 +544,7 @@ class FileBasedElementCloner:
         include_transforms: bool = True,
         analyze_keyframes: bool = True,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Extract element animations and save to *output_path*.
@@ -578,7 +584,7 @@ class FileBasedElementCloner:
                     "analyze_keyframes": analyze_keyframes,
                 },
             }
-            file_path = self._save_to_file(animation_data, output_path)
+            file_path = self._save_to_file(animation_data, output_path, client_roots)
             debug_logger.log_info(
                 "file_element_cloner",
                 "extract_animations_to_file",
@@ -617,6 +623,7 @@ class FileBasedElementCloner:
         include_fonts: bool = True,
         fetch_external: bool = False,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Extract element assets and save to *output_path*.
@@ -656,7 +663,7 @@ class FileBasedElementCloner:
                     "fetch_external": fetch_external,
                 },
             }
-            file_path = self._save_to_file(asset_data, output_path)
+            file_path = self._save_to_file(asset_data, output_path, client_roots)
             debug_logger.log_info(
                 "file_element_cloner", "extract_assets_to_file", f"Saved assets data to {file_path}"
             )
@@ -694,6 +701,7 @@ class FileBasedElementCloner:
         timeout: float = 20.0,
         max_assets: int = 200,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Extract asset URLs for an element, download them, and save a manifest.
@@ -724,7 +732,7 @@ class FileBasedElementCloner:
             if max_assets < 1:
                 raise ValueError("max_assets must be at least 1")
 
-            destination = resolve_output_path(output_dir)
+            destination = resolve_output_path(output_dir, client_roots)
             destination.mkdir(parents=True, exist_ok=True)
 
             asset_data = {}
@@ -871,6 +879,7 @@ class FileBasedElementCloner:
         follow_imports: bool = False,
         max_depth: int = 2,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Extract related files and save to *output_path*.
@@ -904,7 +913,7 @@ class FileBasedElementCloner:
                     "max_depth": max_depth,
                 },
             }
-            file_path = self._save_to_file(file_data, output_path)
+            file_path = self._save_to_file(file_data, output_path, client_roots)
             debug_logger.log_info(
                 "file_element_cloner",
                 "extract_related_files_to_file",
@@ -933,6 +942,7 @@ class FileBasedElementCloner:
         selector: str = None,
         extraction_options: Dict[str, Any] = None,
         instance_id: str = None,
+        client_roots=None,
     ) -> Dict[str, Any]:
         """
         Master extraction: collects all element data and saves to *output_path*.
@@ -960,7 +970,7 @@ class FileBasedElementCloner:
                 "timestamp": datetime.now().isoformat(),
                 "extraction_options": extraction_options,
             }
-            file_path = self._save_to_file(complete_data, output_path)
+            file_path = self._save_to_file(complete_data, output_path, client_roots)
             summary = {
                 **self._path_metadata(file_path),
                 "extraction_type": "complete_clone",

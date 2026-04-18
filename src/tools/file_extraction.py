@@ -9,6 +9,9 @@ server-side directory.
 import json
 from typing import Any, Dict, List, Optional
 
+from fastmcp import Context
+
+from core.client_roots import get_client_root_paths
 from core.login_guard import check_pending_login_guard
 
 
@@ -22,6 +25,7 @@ def register(mcp, section_tool, deps):
         selector: str,
         output_path: str,
         extraction_options: Optional[str] = None,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Clone element completely and save directly to output_path in the workspace.
@@ -59,6 +63,7 @@ def register(mcp, section_tool, deps):
             selector=selector,
             extraction_options=parsed_options,
             instance_id=instance_id,
+            client_roots=await get_client_root_paths(ctx),
         )
 
     @section_tool("file-extraction")
@@ -67,6 +72,7 @@ def register(mcp, section_tool, deps):
         selector: str,
         output_path: str,
         include_children: bool = True,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Extract complete element via comprehensive cloner and save to output_path.
@@ -87,7 +93,12 @@ def register(mcp, section_tool, deps):
         if not tab:
             raise Exception(f"Instance not found: {instance_id}")
         return await file_based_element_cloner.extract_complete_element_to_file(
-            tab, selector, output_path, include_children=include_children, instance_id=instance_id
+            tab,
+            selector,
+            output_path,
+            include_children=include_children,
+            instance_id=instance_id,
+            client_roots=await get_client_root_paths(ctx),
         )
 
     @section_tool("file-extraction")
@@ -99,6 +110,7 @@ def register(mcp, section_tool, deps):
         include_css_rules: bool = True,
         include_pseudo: bool = True,
         include_inheritance: bool = False,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Extract element styles and save to output_path.
@@ -130,6 +142,7 @@ def register(mcp, section_tool, deps):
             include_pseudo=include_pseudo,
             include_inheritance=include_inheritance,
             instance_id=instance_id,
+            client_roots=await get_client_root_paths(ctx),
         )
 
     @section_tool("file-extraction")
@@ -141,6 +154,7 @@ def register(mcp, section_tool, deps):
         include_attributes: bool = True,
         include_data_attributes: bool = True,
         max_depth: int = 3,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Extract element structure and save to output_path.
@@ -172,6 +186,7 @@ def register(mcp, section_tool, deps):
             include_data_attributes=include_data_attributes,
             max_depth=max_depth,
             instance_id=instance_id,
+            client_roots=await get_client_root_paths(ctx),
         )
 
     @section_tool("file-extraction")
@@ -183,6 +198,7 @@ def register(mcp, section_tool, deps):
         include_listeners: bool = True,
         include_framework: bool = True,
         analyze_handlers: bool = True,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Extract element events and save to output_path.
@@ -214,6 +230,7 @@ def register(mcp, section_tool, deps):
             include_framework=include_framework,
             analyze_handlers=analyze_handlers,
             instance_id=instance_id,
+            client_roots=await get_client_root_paths(ctx),
         )
 
     @section_tool("file-extraction")
@@ -225,6 +242,7 @@ def register(mcp, section_tool, deps):
         include_transitions: bool = True,
         include_transforms: bool = True,
         analyze_keyframes: bool = True,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Extract element animations and save to output_path.
@@ -256,6 +274,7 @@ def register(mcp, section_tool, deps):
             include_transforms=include_transforms,
             analyze_keyframes=analyze_keyframes,
             instance_id=instance_id,
+            client_roots=await get_client_root_paths(ctx),
         )
 
     @section_tool("file-extraction")
@@ -267,6 +286,7 @@ def register(mcp, section_tool, deps):
         include_backgrounds: bool = True,
         include_fonts: bool = True,
         fetch_external: bool = False,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Extract element assets and save to output_path.
@@ -298,6 +318,7 @@ def register(mcp, section_tool, deps):
             include_fonts=include_fonts,
             fetch_external=fetch_external,
             instance_id=instance_id,
+            client_roots=await get_client_root_paths(ctx),
         )
 
     @section_tool("file-extraction")
@@ -315,6 +336,7 @@ def register(mcp, section_tool, deps):
         overwrite: bool = False,
         timeout: float = 20.0,
         max_assets: int = 200,
+        ctx: Context = None,
     ) -> Dict[str, Any]:
         """
         Download images, backgrounds, icons, fonts, and media related to an element.
@@ -359,6 +381,7 @@ def register(mcp, section_tool, deps):
             timeout=timeout,
             max_assets=max_assets,
             instance_id=instance_id,
+            client_roots=await get_client_root_paths(ctx),
         )
 
     return {k: v for k, v in locals().items() if callable(v) and not k.startswith("_")}

@@ -18,14 +18,21 @@ services:
       STEALTH_BROWSER_STORAGE_FILE: "/data/storage/instances.json"
       GHOST_CLIENT_WORKSPACE: "/workspace"
       GHOST_CLIENT_WORKSPACE_HOST: "${GHOST_CLIENT_WORKSPACE_HOST:-ghost_browser_mcp_output}"
+      GHOST_HOST_ROOT: "${GHOST_HOST_ROOT:-${USERPROFILE:-${HOME}}}"
+      GHOST_HOST_ROOT_MOUNT: "/host_root"
     ports:
       - "8000:8000"
       - "127.0.0.1:6080:6080"
     volumes:
       - ghost_browser_mcp_data:/data
       - type: bind
-        source: ./ghost_browser_mcp_output
+        source: ${GHOST_HOST_WORKSPACE:-./ghost_browser_mcp_output}
         target: /workspace
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${GHOST_HOST_ROOT:-${USERPROFILE:-${HOME}}}
+        target: /host_root
         bind:
           create_host_path: true
     restart: unless-stopped

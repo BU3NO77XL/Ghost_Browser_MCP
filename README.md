@@ -718,20 +718,41 @@ Keep the local source template as `stdio`. Keep the Docker template as `http`.
 | `GHOST_REMOTE_VIEWER_PUBLIC_URL` | `http://localhost:6080` | Public URL agents should send to the user |
 | `GHOST_REMOTE_VIEWER_TOKEN_SECRET` | `change-me-local-only` | Signs manual-login URLs for downstream gateways |
 | `GHOST_REMOTE_VIEWER_TOKEN_TTL_SECONDS` | `900` | Expiration window for generated login URLs |
+| `GHOST_HOST_WORKSPACE` | `./ghost_browser_mcp_output` | Host folder Docker Compose bind-mounts to `/workspace` |
 | `GHOST_CLIENT_WORKSPACE` | `/workspace` | Container path for client-visible clone/download artifacts |
 | `GHOST_CLIENT_WORKSPACE_HOST` | `ghost_browser_mcp_output` | Host-side path hint returned in tool responses |
+| `GHOST_HOST_ROOT` | user home folder | Host parent folder Docker Compose bind-mounts to `/host_root` for client-root-aware outputs |
+| `GHOST_HOST_ROOT_MOUNT` | `/host_root` | Container path for the broad host-root bind mount |
 | `STEALTH_BROWSER_STORAGE_FILE` | `/data/storage/instances.json` | Persistent runtime instance metadata |
 
-Docker Compose mounts `./ghost_browser_mcp_output` to `/workspace`. File tools such as
+Docker Compose mounts `${GHOST_HOST_WORKSPACE:-./ghost_browser_mcp_output}` to `/workspace`.
+File tools such as
 `save_page_html`, `clone_element_to_file`, `download_element_assets_to_folder`, `take_screenshot`,
-and `print_to_pdf` write there in Docker mode. If an agent passes `/app/govbr/index.html`, Ghost
-Browser redirects it to `/workspace/govbr/index.html` and returns the host hint
-`ghost_browser_mcp_output/govbr/index.html`.
+and `print_to_pdf` write there in Docker mode. If an agent passes `/app/site/index.html`, Ghost
+Browser redirects it to the best client-visible output path.
+
+When the MCP client advertises filesystem roots, Ghost Browser maps relative paths and
+`/workspace/...` paths into the current client root through the broad `/host_root` mount.
+This lets the same already-running Docker service materialize outputs in whatever project
+folder the agent is currently using, as long as that folder is under the mounted host root.
+If the client does not advertise roots, Ghost Browser falls back to `/workspace` and returns
+the configured `client_path_hint`.
 
 Files in `ghost_browser_mcp_output` are treated as user-facing outputs, not disposable server
 temp files. Ghost Browser cleans internal temporary files and browser processes, but it does not
 auto-delete this mounted output folder; remove old clone folders from the host when you no longer
 need them.
+
+If your projects live outside the default user-home mount, start Docker with a broader parent
+folder mounted once:
+
+```powershell
+$env:GHOST_HOST_ROOT = "D:\work"
+docker compose -f docker-compose.image.yml up -d
+```
+
+With the service already running, changing the agent's current directory works only inside the
+already-mounted host root. Restart the compose service after changing `GHOST_HOST_ROOT`.
 
 ### Verified Smoke Test
 

@@ -322,9 +322,9 @@ class TestOutputPaths:
         monkeypatch.setattr(output_paths, "is_running_in_container", lambda: True)
         monkeypatch.setenv("GHOST_CLIENT_WORKSPACE", "/workspace")
 
-        result = output_paths.resolve_output_path("/app/govbr/index.html")
+        result = output_paths.resolve_output_path("/app/site/index.html")
 
-        assert result.as_posix() == "/workspace/govbr/index.html"
+        assert result.as_posix() == "/workspace/site/index.html"
 
     def test_container_relative_path_maps_to_workspace(self, monkeypatch):
         from core import output_paths
@@ -332,18 +332,76 @@ class TestOutputPaths:
         monkeypatch.setattr(output_paths, "is_running_in_container", lambda: True)
         monkeypatch.setenv("GHOST_CLIENT_WORKSPACE", "/workspace")
 
-        result = output_paths.resolve_output_path("govbr/index.html")
+        result = output_paths.resolve_output_path("site/index.html")
 
-        assert result.as_posix() == "/workspace/govbr/index.html"
+        assert result.as_posix() == "/workspace/site/index.html"
 
     def test_local_path_is_preserved(self, monkeypatch):
         from core import output_paths
 
         monkeypatch.setattr(output_paths, "is_running_in_container", lambda: False)
 
-        result = output_paths.resolve_output_path("govbr/index.html")
+        result = output_paths.resolve_output_path("site/index.html")
 
-        assert result.as_posix() == "govbr/index.html"
+        assert result.as_posix() == "site/index.html"
+
+    def test_system_info_detects_windows_host_path_as_absolute(self):
+        from tools.system_info_management import _is_host_path_absolute
+
+        assert _is_host_path_absolute("D:\\workspace\\project") is True
+
+    def test_system_info_converts_windows_file_root_uri(self):
+        from core.output_paths import file_uri_to_path
+
+        assert file_uri_to_path("file:///D:/workspace/project") == "D:/workspace/project"
+
+    def test_container_relative_path_maps_to_client_root_when_host_root_mounted(
+        self, monkeypatch
+    ):
+        from core import output_paths
+
+        monkeypatch.setattr(output_paths, "is_running_in_container", lambda: True)
+        monkeypatch.setenv("GHOST_CLIENT_WORKSPACE", "/workspace")
+        monkeypatch.setenv("GHOST_HOST_ROOT", "D:\\workspace")
+        monkeypatch.setenv("GHOST_HOST_ROOT_MOUNT", "/host_root")
+
+        result = output_paths.resolve_output_path(
+            "site/index.html",
+            client_roots=["file:///D:/workspace/project"],
+        )
+
+        assert result.as_posix() == "/host_root/project/site/index.html"
+
+    def test_container_workspace_path_maps_to_client_root_when_roots_are_available(
+        self, monkeypatch
+    ):
+        from core import output_paths
+
+        monkeypatch.setattr(output_paths, "is_running_in_container", lambda: True)
+        monkeypatch.setenv("GHOST_CLIENT_WORKSPACE", "/workspace")
+        monkeypatch.setenv("GHOST_HOST_ROOT", "D:\\workspace")
+        monkeypatch.setenv("GHOST_HOST_ROOT_MOUNT", "/host_root")
+
+        result = output_paths.resolve_output_path(
+            "/workspace/site/index.html",
+            client_roots=["file:///D:/workspace/project"],
+        )
+
+        assert result.as_posix() == "/host_root/project/site/index.html"
+
+    def test_host_root_metadata_returns_absolute_windows_hint(self, monkeypatch):
+        from core import output_paths
+
+        monkeypatch.setattr(output_paths, "is_running_in_container", lambda: True)
+        monkeypatch.setenv("GHOST_CLIENT_WORKSPACE", "/workspace")
+        monkeypatch.setenv("GHOST_HOST_ROOT", "D:\\workspace")
+        monkeypatch.setenv("GHOST_HOST_ROOT_MOUNT", "/host_root")
+
+        metadata = output_paths.output_path_metadata(
+            Path("/host_root/project/site/index.html")
+        )
+
+        assert metadata["client_path_hint"] == "D:\\workspace\\project\\site\\index.html"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
