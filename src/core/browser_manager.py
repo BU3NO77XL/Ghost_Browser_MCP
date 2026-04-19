@@ -342,7 +342,10 @@ class BrowserManager:
                     )
 
                 try:
-                    await browser.stop()
+                    result = browser.stop()
+                    # nodriver's stop() may return a coroutine or None depending on version
+                    if asyncio.iscoroutine(result):
+                        await result
                 except Exception as e:
                     debug_logger.log_warning(
                         "browser_manager", "close_instance", f"Failed to stop browser: {e}"

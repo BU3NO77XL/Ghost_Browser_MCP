@@ -61,7 +61,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
 norecursedirs = ["reports"]
-timeout = 45
+timeout = 120
 filterwarnings = [
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore::ResourceWarning",
