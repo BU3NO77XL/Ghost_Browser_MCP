@@ -74,5 +74,7 @@ def indexeddb_request_data_to_dict(result: Any) -> Dict[str, Any]:
 
 def coverage_parts(result: Any) -> Tuple[List[Any], float]:
     if isinstance(result, (tuple, list)):
-        return (result[0] if len(result) > 0 else []) or [], float(result[1] or 0) if len(result) > 1 else 0
+        return (result[0] if len(result) > 0 else []) or [], (
+            float(result[1] or 0) if len(result) > 1 else 0
+        )
     return getattr(result, "result", None) or [], getattr(result, "timestamp", 0) or 0

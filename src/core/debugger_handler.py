@@ -5,7 +5,12 @@ from typing import Any, Dict, List, Optional
 
 from nodriver import Tab, cdp
 
-from core.cdp_result import exception_details_to_dict, remote_object_to_dict, runtime_parts, runtime_value
+from core.cdp_result import (
+    exception_details_to_dict,
+    remote_object_to_dict,
+    runtime_parts,
+    runtime_value,
+)
 from core.debug_logger import debug_logger
 
 

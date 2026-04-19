@@ -405,7 +405,9 @@ class NetworkInterceptor:
                             tab.send(uc.cdp.storage.get_cookies(browser_context_id=None)),
                             timeout=4.0,
                         )
-                        cdp_cookies = result.get("cookies", []) if isinstance(result, dict) else result
+                        cdp_cookies = (
+                            result.get("cookies", []) if isinstance(result, dict) else result
+                        )
                         if isinstance(cdp_cookies, list) and cdp_cookies:
                             cookies = [to_json(cookie) for cookie in cdp_cookies]
                     except Exception as cdp_err:

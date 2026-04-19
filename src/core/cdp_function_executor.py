@@ -176,7 +176,12 @@ class CDPFunctionExecutor:
                 "execute_cdp_command",
                 f"Executed {command} with params: {params}",
             )
-            return {"success": True, "result": to_json(result), "command": command, "params": params}
+            return {
+                "success": True,
+                "result": to_json(result),
+                "command": command,
+                "params": params,
+            }
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "execute_cdp_command", e)
             return {"success": False, "error": str(e), "command": command, "params": params}

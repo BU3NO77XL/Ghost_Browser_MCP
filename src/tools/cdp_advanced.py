@@ -20,6 +20,7 @@ def register(mcp, section_tool, deps):
 
     async def _send(tab, method, **params):
         """Send raw CDP command via nodriver."""
+
         def raw_cdp_command():
             result = yield {"method": method, "params": params}
             return result

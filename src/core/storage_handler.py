@@ -15,9 +15,7 @@ class StorageHandler:
 
     @staticmethod
     def _storage_id(origin: str, is_local_storage: bool):
-        return cdp.dom_storage.StorageId(
-            security_origin=origin, is_local_storage=is_local_storage
-        )
+        return cdp.dom_storage.StorageId(security_origin=origin, is_local_storage=is_local_storage)
 
     @staticmethod
     def _is_null_origin(origin: str) -> bool:
@@ -43,9 +41,7 @@ class StorageHandler:
     async def _set_web_storage_js(tab: Tab, storage_name: str, key: str, value: str) -> None:
         import json
 
-        await tab.evaluate(
-            f"window.{storage_name}.setItem({json.dumps(key)}, {json.dumps(value)})"
-        )
+        await tab.evaluate(f"window.{storage_name}.setItem({json.dumps(key)}, {json.dumps(value)})")
 
     @staticmethod
     async def _remove_web_storage_js(tab: Tab, storage_name: str, key: str) -> None:
@@ -553,15 +549,13 @@ class StorageHandler:
         )
         try:
             if StorageHandler._is_null_origin(origin):
-                result = await tab.evaluate(
-                    """
+                result = await tab.evaluate("""
                     (async () => {
                         if (!indexedDB.databases) return [];
                         const dbs = await indexedDB.databases();
                         return dbs.map(db => db.name).filter(Boolean);
                     })()
-                    """
-                )
+                    """)
                 return result if isinstance(result, list) else []
             # Enable IndexedDB domain first
             await StorageHandler._enable_indexed_db(tab)
@@ -570,7 +564,9 @@ class StorageHandler:
             result = await tab.send(cdp.indexed_db.request_database_names(security_origin=origin))
 
             mock_database_names = getattr(result, "database_names", None)
-            database_names = mock_database_names if isinstance(mock_database_names, list) else result or []
+            database_names = (
+                mock_database_names if isinstance(mock_database_names, list) else result or []
+            )
 
             debug_logger.log_info(
                 "StorageHandler",

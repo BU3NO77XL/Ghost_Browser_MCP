@@ -126,7 +126,9 @@ class CSSHandler:
             node_id = await CSSHandler._get_node_id_from_selector(tab, selector)
             result = await tab.send(cdp.css.get_inline_styles_for_node(node_id=node_id))
             inline_style = (
-                result[0] if isinstance(result, (tuple, list)) else getattr(result, "inline_style", None)
+                result[0]
+                if isinstance(result, (tuple, list))
+                else getattr(result, "inline_style", None)
             )
             if not inline_style or not inline_style.css_properties:
                 return {}
@@ -272,7 +274,9 @@ class CSSHandler:
             await CSSHandler.enable_css_domain(tab)
             result = await tab.send(cdp.css.get_media_queries())
             medias = []
-            media_items = result if isinstance(result, list) else getattr(result, "medias", None) or []
+            media_items = (
+                result if isinstance(result, list) else getattr(result, "medias", None) or []
+            )
             for media in media_items:
                 expressions = []
                 if media.media_list:
